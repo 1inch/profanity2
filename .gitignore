@@ -1,5 +1,4 @@
-# Makefile artifacts
-*.o
-*.so
+# CMake artifacts
+/build
 cache-opencl.*
-bin
+profanity2.x64
