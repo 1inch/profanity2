@@ -42,6 +42,9 @@ $ python3
 ```
 
 # Usage
+```cmake
+cmake -S . -B build && cmake --build build
+```
 ```
 usage: ./profanity2 [OPTIONS]
 
