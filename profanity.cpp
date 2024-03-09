@@ -151,6 +151,7 @@ int main(int argc, char * * argv) {
 		bool bHelp = false;
 		bool bModeBenchmark = false;
 		bool bModeZeros = false;
+		bool bModeZeroBytes = false;
 		bool bModeLetters = false;
 		bool bModeNumbers = false;
 		std::string strModeLeading;
@@ -191,6 +192,7 @@ int main(int argc, char * * argv) {
 		argp.addSwitch('I', "inverse-multiple", inverseMultiple);
 		argp.addSwitch('c', "contract", bMineContract);
 		argp.addSwitch('z', "publicKey", strPublicKey);
+		argp.addSwitch('b', "zero-bytes", bModeZeroBytes);
 
 		if (!argp.parse()) {
 			std::cout << "error: bad arguments, try again :<" << std::endl;
@@ -223,6 +225,8 @@ int main(int argc, char * * argv) {
 			mode = Mode::mirror();
 		} else if (bModeDoubles) {
 			mode = Mode::doubles();
+		} else if (bModeZeroBytes) {
+			mode = Mode::zeroBytes();
 		} else {
 			std::cout << g_strHelp << std::endl;
 			return 0;

@@ -84,6 +84,13 @@ Mode Mode::range(const cl_uchar min, const cl_uchar max) {
 	return r;
 }
 
+Mode Mode::zeroBytes() {
+	Mode r;
+	r.name = "zeroBytes";
+	r.kernel = "profanity_score_zerobytes";
+	return r;
+}
+
 Mode Mode::letters() {
 	Mode r = range(10, 15);
 	r.name = "letters";

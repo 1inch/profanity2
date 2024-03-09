@@ -56,6 +56,7 @@ usage: ./profanity2 [OPTIONS]
     --numbers               Score on numbers anywhere in hash.
     --mirror                Score on mirroring from center.
     --leading-doubles       Score on hashes leading with hexadecimal pairs
+    -b, --zero-bytes        Score on hashes containing the most zero bytes
 
   Modes with arguments:
     --leading <single hex>  Score on hashes leading with given hex character.
@@ -93,6 +94,7 @@ usage: ./profanity2 [OPTIONS]
     ./profanity2 --leading-range -m 10 -M 12 -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --range -m 0 -M 1 -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --contract --leading 0 -z HEX_PUBLIC_KEY_128_CHARS_LONG
+    ./profanity2 --contract --zero-bytes -z HEX_PUBLIC_KEY_128_CHARS_LONG
 
   About:
     profanity2 is a vanity address generator for Ethereum that utilizes
@@ -121,5 +123,8 @@ usage: ./profanity2 [OPTIONS]
 |GTX 1070 OC|1950|4450|NO|179.0 MH/s| ~24s
 |GTX 1070|1750|4000|NO|163.0 MH/s| ~26s
 |RX 480|1328|2000|YES|120.0 MH/s| ~36s
+|RTX 4090|-|-|-|1096 MH/s| ~3s
 |Apple Silicon M1<br/>(8-core GPU)|-|-|-|45.0 MH/s| ~97s
 |Apple Silicon M1 Max<br/>(32-core GPU)|-|-|-|172.0 MH/s| ~25s
+|Apple Silicon M3 Pro<br/>(18-core GPU)|-|-|-|97 MH/s| ~45s
+
