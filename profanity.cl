@@ -5,7 +5,7 @@
  *
  * Terminology
  * ===========
- * 
+ *
  *
  * Cutting corners
  * ===============
@@ -16,7 +16,7 @@
  * doing it right is too severe. In the future I'll introduce a periodic check
  * after N amount of cycles that verifies the integrity of all the points to
  * make sure that even very unlikely event are at some point rectified.
- * 
+ *
  * Currently, if any of the points in the kernels experiences the unlikely event
  * of an error then that point is forever garbage and your runtime-performance
  * will in practice be (i*I-N) / (i*I). i and I here refers to the values given
@@ -331,7 +331,7 @@ void mp_mod_mul(mp_number * const r, const mp_number * const X, const mp_number 
 	*r = Z;
 }
 
-// Modular inversion of a number. 
+// Modular inversion of a number.
 void mp_mod_inverse(mp_number * const r) {
 	mp_number A = { { 1 } };
 	mp_number C = { { 0 } };
@@ -474,7 +474,7 @@ __kernel void profanity_init(__global const point * const precomp, __global mp_n
 	mp_mod_sub_gx(&tmp1, &p.x);
 	mp_mod_inverse(&tmp1);
 
-	mp_mod_sub_gy(&tmp2, &p.y); 
+	mp_mod_sub_gy(&tmp2, &p.y);
 	mp_mod_mul(&tmp1, &tmp1, &tmp2);
 
 	// Jump to next point (precomp[0] is the generator point G)
@@ -494,7 +494,7 @@ __kernel void profanity_init(__global const point * const precomp, __global mp_n
 
 // This kernel calculates several modular inversions at once with just one inverse.
 // It's an implementation of Algorithm 2.11 from Modern Computer Arithmetic:
-// https://members.loria.fr/PZimmermann/mca/pub226.html 
+// https://members.loria.fr/PZimmermann/mca/pub226.html
 //
 // My RX 480 is very sensitive to changes in the second loop and sometimes I have
 // to make seemingly non-functional changes to the code to make the compiler
@@ -563,7 +563,7 @@ __kernel void profanity_inverse(__global const mp_number * const pDeltaX, __glob
 // Then we have:
 //   d = x - G_x <=> x = d + G_x
 //   x' = λ² - G_x - x <=> x_r = λ² - G_x - d - G_x = λ² - 2G_x - d
-//   
+//
 //   d' = x' - G_x = λ² - 2G_x - d - G_x = λ² - 3G_x - d
 //
 // So we see that the new delta d' can be calculated with the same
@@ -585,9 +585,9 @@ __kernel void profanity_inverse(__global const mp_number * const pDeltaX, __glob
 // But we aren't done yet! Let's expand the expression for the next
 // lambda, λ'. We have:
 //   λ' = (y' - G_y) / d'
-//      = (-λ * d' - G_y - G_y) / d' 
-//      = (-λ * d' - 2*G_y) / d' 
-//      = -λ - 2*G_y / d' 
+//      = (-λ * d' - G_y - G_y) / d'
+//      = (-λ * d' - 2*G_y) / d'
+//      = -λ - 2*G_y / d'
 //
 // So the next lambda value can be calculated from the old one. This in
 // and of itself is not so interesting but the fact that the term -2 * G_y
@@ -602,7 +602,7 @@ __kernel void profanity_inverse(__global const mp_number * const pDeltaX, __glob
 // but it's still a net gain. To additionally decrease memory access
 // overhead I never any longer store the Y coordinate. Instead I
 // calculate it at the end directly from the lambda and deltaX.
-// 
+//
 // In addition to this some algebraic re-ordering has been done to move
 // constants into the same argument to a new function mp_mod_sub_const
 // in hopes that using constant storage instead of private storage
@@ -693,7 +693,7 @@ void profanity_result_update(const size_t id, __global const uchar * const hash,
 
 __kernel void profanity_transform_contract(__global mp_number * const pInverse) {
 	const size_t id = get_global_id(0);
-	__global const uchar * const hash = pInverse[id].d;
+	__global const uchar * const hash = (__global const uchar * const)pInverse[id].d;
 
 	ethhash h;
 	for (int i = 0; i < 50; ++i) {
@@ -719,7 +719,7 @@ __kernel void profanity_transform_contract(__global mp_number * const pInverse) 
 
 __kernel void profanity_score_benchmark(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
 	const size_t id = get_global_id(0);
-	__global const uchar * const hash = pInverse[id].d;
+	__global const uchar * const hash = (__global const uchar * const)pInverse[id].d;
 	int score = 0;
 
 	profanity_result_update(id, hash, pResult, score, scoreMax);
@@ -727,7 +727,7 @@ __kernel void profanity_score_benchmark(__global mp_number * const pInverse, __g
 
 __kernel void profanity_score_matching(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
 	const size_t id = get_global_id(0);
-	__global const uchar * const hash = pInverse[id].d;
+	__global const uchar * const hash = (__global const uchar * const)pInverse[id].d;
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
@@ -741,7 +741,7 @@ __kernel void profanity_score_matching(__global mp_number * const pInverse, __gl
 
 __kernel void profanity_score_leading(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
 	const size_t id = get_global_id(0);
-	__global const uchar * const hash = pInverse[id].d;
+	__global const uchar * const hash = (__global const uchar * const)pInverse[id].d;
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
@@ -765,7 +765,7 @@ __kernel void profanity_score_leading(__global mp_number * const pInverse, __glo
 
 __kernel void profanity_score_range(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
 	const size_t id = get_global_id(0);
-	__global const uchar * const hash = pInverse[id].d;
+	__global const uchar * const hash = (__global const uchar * const)pInverse[id].d;
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
@@ -786,7 +786,7 @@ __kernel void profanity_score_range(__global mp_number * const pInverse, __globa
 
 __kernel void profanity_score_zerobytes(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
 	const size_t id = get_global_id(0);
-	__global const uchar * const hash = pInverse[id].d;
+	__global const uchar * const hash = (__global const uchar * const)pInverse[id].d;
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
@@ -800,7 +800,7 @@ __kernel void profanity_score_zerobytes(__global mp_number * const pInverse, __g
 
 __kernel void profanity_score_leadingrange(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
 	const size_t id = get_global_id(0);
-	__global const uchar * const hash = pInverse[id].d;
+	__global const uchar * const hash = (__global const uchar * const)pInverse[id].d;
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
@@ -827,7 +827,7 @@ __kernel void profanity_score_leadingrange(__global mp_number * const pInverse, 
 
 __kernel void profanity_score_mirror(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
 	const size_t id = get_global_id(0);
-	__global const uchar * const hash = pInverse[id].d;
+	__global const uchar * const hash = (__global const uchar * const)pInverse[id].d;
 	int score = 0;
 
 	for (int i = 0; i < 10; ++i) {
@@ -855,7 +855,7 @@ __kernel void profanity_score_mirror(__global mp_number * const pInverse, __glob
 
 __kernel void profanity_score_doubles(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
 	const size_t id = get_global_id(0);
-	__global const uchar * const hash = pInverse[id].d;
+	__global const uchar * const hash = (__global const uchar * const)pInverse[id].d;
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
