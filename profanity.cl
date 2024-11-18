@@ -725,6 +725,36 @@ __kernel void profanity_score_benchmark(__global mp_number * const pInverse, __g
 	profanity_result_update(id, hash, pResult, score, scoreMax);
 }
 
+// Returns all exact matches of the mask back to host
+__kernel void profanity_exact_match(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
+	const size_t id = get_global_id(0);
+	__global const uchar * const hash = (__global const uchar * const)pInverse[id].d;
+
+	uint match = 1;
+
+	// Check if the hash matches the mask exactly
+	for (int i = 0; i < 20; ++i) {
+		if (data1[i] > 0 && (hash[i] & data1[i]) != data2[i]) {
+			match = 0;
+			break;
+		}
+	}
+
+	if (match > 0) {
+		// Using pResult as circular buffer, where [0] is write cursor position and
+		// PROFANITY_MAX_SCORE is the buffer size.
+		uint newIndex = atomic_inc(&pResult[0].found);
+		uint slot = (newIndex % PROFANITY_MAX_SCORE) + 1; // +1 because slot 0 is the write cursor
+
+		pResult[slot].foundId = id;
+
+		// Copy the hash
+		for (int i = 0; i < 20; ++i) {
+			pResult[slot].foundHash[i] = hash[i];
+		}
+	}
+}
+
 __kernel void profanity_score_matching(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
 	const size_t id = get_global_id(0);
 	__global const uchar * const hash = (__global const uchar * const)pInverse[id].d;

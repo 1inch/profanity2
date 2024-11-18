@@ -73,30 +73,41 @@ static std::string toHex(const uint8_t * const s, const size_t len) {
 	return r;
 }
 
-static void printResult(cl_ulong4 seed, cl_ulong round, result r, cl_uchar score, const std::chrono::time_point<std::chrono::steady_clock> & timeStart, const Mode & mode) {
-	// Time delta
-	const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - timeStart).count();
-
-	// Format private key
+static std::string formatPrivateKey(cl_ulong4 seed, cl_ulong round, uint foundId) {
 	cl_ulong carry = 0;
 	cl_ulong4 seedRes;
 
 	seedRes.s[0] = seed.s[0] + round; carry = seedRes.s[0] < round;
 	seedRes.s[1] = seed.s[1] + carry; carry = !seedRes.s[1];
 	seedRes.s[2] = seed.s[2] + carry; carry = !seedRes.s[2];
-	seedRes.s[3] = seed.s[3] + carry + r.foundId;
+	seedRes.s[3] = seed.s[3] + carry + foundId;
 
 	std::ostringstream ss;
 	ss << std::hex << std::setfill('0');
 	ss << std::setw(16) << seedRes.s[3] << std::setw(16) << seedRes.s[2] << std::setw(16) << seedRes.s[1] << std::setw(16) << seedRes.s[0];
-	const std::string strPrivate = ss.str();
+
+	return  ss.str();
+}
+
+static void printResult(cl_ulong4 seed, cl_ulong round, result r, cl_uchar score, const std::chrono::time_point<std::chrono::steady_clock> & timeStart, const Mode & mode) {
+	// Time delta
+	const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - timeStart).count();
+
+	// Format private key
+	const std::string strPrivate = formatPrivateKey(seed, round, r.foundId);
 
 	// Format public key
 	const std::string strPublic = toHex(r.foundHash, 20);
 
 	// Print
 	const std::string strVT100ClearLine = "\33[2K\r";
-	std::cout << strVT100ClearLine << "  Time: " << std::setw(5) << seconds << "s Score: " << std::setw(2) << (int) score << " Private: 0x" << strPrivate << ' ';
+	std::cout << strVT100ClearLine << "  Time: " << std::setw(5) << seconds << "s";
+
+	if (mode.name != "exact") {
+		std::cout << " Score: " << std::setw(2) << (int) score;
+	}
+
+	std::cout << " Private: 0x" << strPrivate << ' ';
 
 	std::cout << mode.transformName();
 	std::cout << ": 0x" << strPublic << std::endl;
@@ -193,7 +204,8 @@ Dispatcher::Device::Device(Dispatcher & parent, cl_context & clContext, cl_progr
 	m_round(0),
 	m_speed(PROFANITY_SPEEDSAMPLES),
 	m_sizeInitialized(0),
-	m_eventFinished(NULL)
+	m_eventFinished(NULL),
+	m_lastCursorIndex(1)
 {
 
 }
@@ -235,6 +247,21 @@ void Dispatcher::run() {
 
 	const auto timeInitialization = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - timeStart).count();
 	std::cout << "Initialization time: " << timeInitialization << " seconds" << std::endl;
+
+	if (m_mode.name == "exact" || m_mode.name == "matching") {
+		auto mask = toHex(m_mode.data1, 20); // FF0...
+		auto pattern = toHex(m_mode.data2, 20); // AE53424...
+
+		for (size_t i = 0; i < mask.size(); i++) {
+			if (mask[i] == '0') {
+				pattern[i] = '_';
+			}
+		}
+
+		std::cout << "Hex string mask: " << pattern << std::endl;
+	}
+
+	std::cout << std::endl;
 
 	m_quit = false;
 	m_countRunning = m_vDevices.size();
@@ -354,7 +381,7 @@ void Dispatcher::initContinue(Device & d) {
 		// the commands are not required to begin execution until the queue is flushed. In standard usage, blocking enqueue calls serve this role by implicitly
 		// flushing the queue. Since blocking calls are not permitted in callbacks, those callbacks that enqueue commands on a command queue should either call
 		// clFlush on the queue before returning or arrange for clFlush to be called later on another thread.
-		clFlush(d.m_clQueue); 
+		clFlush(d.m_clQueue);
 
 		std::lock_guard<std::mutex> lock(m_mutex);
 		d.m_sizeInitialized += sizeRun;
@@ -426,7 +453,7 @@ void Dispatcher::dispatch(Device & d) {
 	// We're actually not allowed to call clFinish here because this function is ultimately asynchronously called by OpenCL.
 	// However, this happens to work on my computer and it's not really intended for release, just something to aid me in
 	// optimizations.
-	clFinish(d.m_clQueue); 
+	clFinish(d.m_clQueue);
 	std::cout << "Timing: profanity_inverse = " << getKernelExecutionTimeMicros(eventInverse) << "us, profanity_iterate = " << getKernelExecutionTimeMicros(eventIterate) << "us" << std::endl;
 #endif
 
@@ -434,7 +461,55 @@ void Dispatcher::dispatch(Device & d) {
 	OpenCLException::throwIfError("failed to set custom callback", res);
 }
 
+
+void Dispatcher::handleExactResult(Device & d) {
+	uint cursorLocation = d.m_memResult[0].found;
+	uint currentCursorIndex = (cursorLocation % PROFANITY_MAX_SCORE) + 1;
+
+	// 3 cases:
+
+	// d.m_lastCursorIndex = currentCursorIndex -> no new results
+	if (currentCursorIndex == d.m_lastCursorIndex) {
+		return;
+	}
+
+	std::vector<size_t> range;
+
+	if (currentCursorIndex > d.m_lastCursorIndex) {
+		// d.m_lastCursorIndex > currentCursorIndex -> new results, read from last to current
+		for (size_t resultIndex = d.m_lastCursorIndex; resultIndex < currentCursorIndex; ++resultIndex) {
+			range.push_back(resultIndex);
+		}
+	} else {
+		// d.m_lastCursorIndex < currentCursorIndex -> buffer rollover:
+
+		// read from last to PROFANITY_MAX_SCORE
+		for (size_t resultIndex = d.m_lastCursorIndex; resultIndex < PROFANITY_MAX_SCORE; ++resultIndex) {
+			range.push_back(resultIndex);
+		}
+
+		// read from 0 to currentCursorIndex
+		for (size_t resultIndex = 0; resultIndex < currentCursorIndex; ++resultIndex) {
+			range.push_back(resultIndex);
+		}
+	}
+
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	for (auto resultIndex : range) {
+		printResult(d.m_clSeed, d.m_round, d.m_memResult[resultIndex], 0, timeStart, m_mode);
+	}
+
+	d.m_lastCursorIndex = currentCursorIndex;
+}
+
 void Dispatcher::handleResult(Device & d) {
+	if (m_mode.name == "exact") {
+		handleExactResult(d);
+
+		return;
+	}
+
 	for (auto i = PROFANITY_MAX_SCORE; i > m_clScoreMax; --i) {
 		result & r = d.m_memResult[i];
 

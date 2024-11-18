@@ -156,6 +156,7 @@ int main(int argc, char * * argv) {
 		bool bModeNumbers = false;
 		std::string strModeLeading;
 		std::string strModeMatching;
+		std::string strModeExact;
 		std::string strPublicKey;
 		bool bModeLeadingRange = false;
 		bool bModeRange = false;
@@ -193,6 +194,7 @@ int main(int argc, char * * argv) {
 		argp.addSwitch('c', "contract", bMineContract);
 		argp.addSwitch('z', "publicKey", strPublicKey);
 		argp.addSwitch('b', "zero-bytes", bModeZeroBytes);
+		argp.addSwitch('e', "exact", strModeExact);
 
 		if (!argp.parse()) {
 			std::cout << "error: bad arguments, try again :<" << std::endl;
@@ -217,6 +219,8 @@ int main(int argc, char * * argv) {
 			mode = Mode::leading(strModeLeading.front());
 		} else if (!strModeMatching.empty()) {
 			mode = Mode::matching(strModeMatching);
+		} else if (!strModeExact.empty()) {
+			mode = Mode::exact(strModeExact);
 		} else if (bModeLeadingRange) {
 			mode = Mode::leadingRange(rangeMin, rangeMax);
 		} else if (bModeRange) {
@@ -231,7 +235,7 @@ int main(int argc, char * * argv) {
 			std::cout << g_strHelp << std::endl;
 			return 0;
 		}
-		
+
 		if (strPublicKey.length() == 0) {
 			std::cout << "error: this tool requires your public key to derive it's private key security" << std::endl;
 			return 1;
@@ -242,6 +246,8 @@ int main(int argc, char * * argv) {
 			return 1;
 		}
 
+		std::cout << "Public key: " << strPublicKey << std::endl;
+
 		std::cout << "Mode: " << mode.name << std::endl;
 
 		if (bMineContract) {
@@ -249,7 +255,9 @@ int main(int argc, char * * argv) {
 		} else {
 			mode.target = ADDRESS;
 		}
-		std::cout << "Target: " << mode.transformName() << std:: endl;
+
+		std::cout << "Target: " << mode.transformName() << std::endl;
+		std::cout << std::endl;
 
 		std::vector<cl_device_id> vFoundDevices = getAllDevices();
 		std::vector<cl_device_id> vDevices;
@@ -382,4 +390,3 @@ int main(int argc, char * * argv) {
 
 	return 1;
 }
-
