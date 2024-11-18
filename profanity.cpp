@@ -334,19 +334,22 @@ int main(int argc, char * * argv) {
 		// Build the program
 		std::cout << "  Building program..." << std::flush;
 		const std::string strBuildOptions = "-D PROFANITY_INVERSE_SIZE=" + toString(inverseSize) + " -D PROFANITY_MAX_SCORE=" + toString(PROFANITY_MAX_SCORE);
-		if (printResult(clBuildProgram(clProgram, vDevices.size(), vDevices.data(), strBuildOptions.c_str(), NULL, NULL))) {
+		auto res = printResult(clBuildProgram(clProgram, vDevices.size(), vDevices.data(), strBuildOptions.c_str(), NULL, NULL));
+
 #ifdef PROFANITY_DEBUG
-			std::cout << std::endl;
-			std::cout << "build log:" << std::endl;
+		std::cout << std::endl;
+		std::cout << "build log:" << std::endl;
 
-			size_t sizeLog;
-			clGetProgramBuildInfo(clProgram, vDevices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &sizeLog);
-			char * const szLog = new char[sizeLog];
-			clGetProgramBuildInfo(clProgram, vDevices[0], CL_PROGRAM_BUILD_LOG, sizeLog, szLog, NULL);
+		size_t sizeLog;
+		clGetProgramBuildInfo(clProgram, vDevices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &sizeLog);
+		char * const szLog = new char[sizeLog];
+		clGetProgramBuildInfo(clProgram, vDevices[0], CL_PROGRAM_BUILD_LOG, sizeLog, szLog, NULL);
 
-			std::cout << szLog << std::endl;
-			delete[] szLog;
+		std::cout << szLog << std::endl;
+		delete[] szLog;
 #endif
+
+		if (res) {
 			return 1;
 		}
 
