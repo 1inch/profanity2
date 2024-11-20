@@ -41,6 +41,15 @@ $ python3
 >>> hex((PRIVATE_KEY_A + PRIVATE_KEY_B) % 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F)
 ```
 
+### (BUG) Leading Zero Example
+```bash
+>>> (echo 'ibase=16;obase=10' && (echo '(0bc657b0af28b743c7f0d49c4de78efd47a5c8923dabfdef051fff5cdc7c30e7 + 0x0000f8ba428990fca1e618a252ac3614f5de19b20ff00c2ded57bfb6933830aa) % FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F' | tr '[:lower:]' '[:upper:]')) | bc
+>>> BC7506AF1B2484069D6ED3EA093C5123D83E2444D9C0A1CF277BF226FB49AD0
+>>> 0BC7506AF1B2484069D6ED3EA093C5123D83E2444D9C0A1CF277BF226FB49AD0 (Pad with 1 zero as length only 63)
+```
+
+Note that if **less than 64-symbol** is generated, simply **add leading zeroes** to the private key. This occurs due to the summation of `PRIVATE_KEY_A` & `PRIVATE_KEY_B` with leading 0s not being displayed in final hex generated. Example above has 1 overlapping leading 0 thus we add an additional zero.
+
 # Usage
 ```
 usage: ./profanity2 [OPTIONS]
