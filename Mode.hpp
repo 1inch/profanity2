@@ -21,6 +21,7 @@ class Mode {
 
 	public:
 		static Mode matching(const std::string strHex);
+		static Mode exact(const std::string strHex);
 		static Mode range(const cl_uchar min, const cl_uchar max);
 		static Mode leading(const char charLeading);
 		static Mode leadingRange(const cl_uchar min, const cl_uchar max);

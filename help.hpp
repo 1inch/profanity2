@@ -21,7 +21,8 @@ usage: ./profanity2 [OPTIONS]
 
   Modes with arguments:
     --leading <single hex>  Score on hashes leading with given hex character.
-    --matching <hex string> Score on hashes matching given hex string.
+    --matching <hex mask>   Score on hashes matching given hex string.
+    -e, --exact <hex mask>  Score on all hashes exactly matching given mask.
 
   Advanced modes:
     --contract              Instead of account address, score the contract
@@ -49,12 +50,14 @@ usage: ./profanity2 [OPTIONS]
 
   Examples:
     ./profanity2 --leading f -z HEX_PUBLIC_KEY_128_CHARS_LONG
-    ./profanity2 --matching dead -z HEX_PUBLIC_KEY_128_CHARS_LONG
-    ./profanity2 --matching badXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXbad -z HEX_PUBLIC_KEY_128_CHARS_LONG
+    ./profanity2 --matching beef -z HEX_PUBLIC_KEY_128_CHARS_LONG
+    ./profanity2 --matching 1337________________________________C0DE -z HEX_PUBLIC_KEY_128_CHARS_LONG
+    ./profanity2 --exact 1337________________________________C0DE -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --leading-range -m 0 -M 1 -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --leading-range -m 10 -M 12 -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --range -m 0 -M 1 -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --contract --leading 0 -z HEX_PUBLIC_KEY_128_CHARS_LONG
+    ./profanity2 --contract --zero-bytes -z HEX_PUBLIC_KEY_128_CHARS_LONG
 
   About:
     profanity2 is a vanity address generator for Ethereum that utilizes

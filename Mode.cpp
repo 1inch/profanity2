@@ -37,6 +37,20 @@ static std::string::size_type hexValue(char c) {
 	return ret;
 }
 
+//
+// Pattern:
+//					1337________________________________C0DE
+//          10000______________________________00001
+//
+// | #   | Chr | iHi  | iLo  |  mHi |  mLo | d1[i] | d2[i] |
+// |-----------|------|------|------|------|-------|-------|
+// | 0   | d d | 13   | 13   | 0xF0 | 0x0F | 0xFF  | 0xDD  |
+// | 1   | 0 b | 0    | 11   | 0xF0 | 0x0F | 0xFF  | 0x0B  |
+// | 2   | b _ | 11   | npos | 0xF0 | 0x00 | 0xF0  | 0x00  |
+// | 3-9 | _ _ | npos | npos | 0x00 | 0x00 | 0x00  | 0x00  |
+// | 10  | d d | 13   | 13   | 0xF0 | 0x0F | 0xFF  | 0xDD  |
+// | 11  | 0 b | 0    | 11   | 0xF0 | 0x0F | 0xFF  | 0x0B  |
+
 Mode Mode::matching(const std::string strHex) {
 	Mode r;
 	r.name = "matching";
@@ -46,7 +60,7 @@ Mode Mode::matching(const std::string strHex) {
 	std::fill( r.data2, r.data2 + sizeof(r.data2), cl_uchar(0) );
 
 	auto index = 0;
-	
+
 	for( size_t i = 0; i < strHex.size(); i += 2 ) {
 		const auto indexHi = hexValueNoException(strHex[i]);
 		const auto indexLo = i + 1 < strHex.size() ? hexValueNoException(strHex[i+1]) : std::string::npos;
@@ -65,6 +79,16 @@ Mode Mode::matching(const std::string strHex) {
 
 	return r;
 }
+
+Mode Mode::exact(const std::string strHex) {
+	Mode r = matching(strHex);
+
+	r.name = "exact";
+	r.kernel = "profanity_exact_match";
+
+	return r;
+}
+
 
 Mode Mode::leading(const char charLeading) {
 
