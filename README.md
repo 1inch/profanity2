@@ -129,3 +129,5 @@ usage: ./profanity2 [OPTIONS]
 |Apple Silicon M1<br/>(8-core GPU)|-|-|-|45.0 MH/s| ~97s
 |Apple Silicon M1 Max<br/>(32-core GPU)|-|-|-|172.0 MH/s| ~25s
 |Apple Silicon M3 Pro<br/>(18-core GPU)|-|-|-|97 MH/s| ~45s
+|Apple Silicon M4 Max<br/>(40-core GPU)|-|-|-|350 MH/s| ~12s
+
