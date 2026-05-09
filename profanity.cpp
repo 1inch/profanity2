@@ -33,24 +33,46 @@ std::string readFile(const char * const szFilename)
 	return contents.str();
 }
 
-std::vector<cl_device_id> getAllDevices(cl_device_type deviceType = CL_DEVICE_TYPE_GPU)
-{
+std::vector<cl_device_id> getAllDevices(cl_device_type deviceType = CL_DEVICE_TYPE_GPU) {
 	std::vector<cl_device_id> vDevices;
 
 	cl_uint platformIdCount = 0;
-	clGetPlatformIDs (0, NULL, &platformIdCount);
+	cl_int err = clGetPlatformIDs(0, NULL, &platformIdCount);
+	if (err != CL_SUCCESS || platformIdCount == 0) {
+		std::cerr << "warning: no OpenCL platforms found, err = " << err << std::endl;
+		return vDevices;
+	}
 
-	std::vector<cl_platform_id> platformIds (platformIdCount);
-	clGetPlatformIDs (platformIdCount, platformIds.data (), NULL);
+	std::vector<cl_platform_id> platformIds(platformIdCount);
+	err = clGetPlatformIDs(platformIdCount, platformIds.data(), NULL);
+	if (err != CL_SUCCESS) {
+		std::cerr << "warning: failed to enumerate OpenCL platforms, err = " << err << std::endl;
+		return vDevices;
+	}
 
-	for( auto it = platformIds.cbegin(); it != platformIds.cend(); ++it ) {
-		cl_uint countDevice;
-		clGetDeviceIDs(*it, deviceType, 0, NULL, &countDevice);
+	for (auto it = platformIds.cbegin(); it != platformIds.cend(); ++it) {
+		cl_uint countDevice = 0;
+
+		err = clGetDeviceIDs(*it, deviceType, 0, NULL, &countDevice);
+		if (err != CL_SUCCESS || countDevice == 0) {
+			char platformName[256] = {0};
+			clGetPlatformInfo(*it, CL_PLATFORM_NAME, sizeof(platformName), platformName, NULL);
+			std::cerr << "warning: skipping OpenCL platform without usable GPU devices: "
+			          << platformName << ", err = " << err << std::endl;
+			continue;
+		}
 
 		std::vector<cl_device_id> deviceIds(countDevice);
-		clGetDeviceIDs(*it, deviceType, countDevice, deviceIds.data(), &countDevice);
+		err = clGetDeviceIDs(*it, deviceType, countDevice, deviceIds.data(), &countDevice);
+		if (err != CL_SUCCESS) {
+			char platformName[256] = {0};
+			clGetPlatformInfo(*it, CL_PLATFORM_NAME, sizeof(platformName), platformName, NULL);
+			std::cerr << "warning: failed to get GPU devices from platform: "
+			          << platformName << ", err = " << err << std::endl;
+			continue;
+		}
 
-		std::copy( deviceIds.begin(), deviceIds.end(), std::back_inserter(vDevices) );
+		std::copy(deviceIds.begin(), deviceIds.end(), std::back_inserter(vDevices));
 	}
 
 	return vDevices;
