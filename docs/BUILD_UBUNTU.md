@@ -89,13 +89,13 @@ parameter and for usage examples of all scoring modes.
 
 ## Troubleshooting
 
-| Symptom | Fix |
-|---|---|
-| `fatal error: CL/cl.h: No such file or directory` | `sudo apt install opencl-headers` |
-| `/usr/bin/ld: cannot find -lOpenCL` | `sudo apt install ocl-icd-opencl-dev` |
-| Output stops after `Devices:` (empty list) | No OpenCL runtime installed — see step 2, verify with `clinfo` |
-| Garbage device name, `unknown exception occured` | Broken/mismatched GPU driver — reinstall the vendor driver |
-| Works but private keys don't match addresses (AMD) | Update to a recent ROCm driver (see issue [#13](https://github.com/1inch/profanity2/issues/13)) |
+| Symptom | Fix | Seen in |
+|---|---|---|
+| `fatal error: CL/cl.h: No such file or directory` | `sudo apt install opencl-headers` | [#31](https://github.com/1inch/profanity2/issues/31) |
+| `/usr/bin/ld: cannot find -lOpenCL` | `sudo apt install ocl-icd-opencl-dev` | [#25](https://github.com/1inch/profanity2/issues/25) |
+| Output stops after `Devices:` (empty list) | No OpenCL runtime installed — see step 2, verify with `clinfo` | [#25](https://github.com/1inch/profanity2/issues/25), [#39](https://github.com/1inch/profanity2/issues/39), [#46](https://github.com/1inch/profanity2/issues/46) |
+| Garbage device name, `unknown exception occured` | Broken/mismatched GPU driver — reinstall the vendor driver | [#29](https://github.com/1inch/profanity2/issues/29) |
+| Works but private keys don't match addresses (AMD) | Update to a recent ROCm driver | [#13](https://github.com/1inch/profanity2/issues/13), [#5](https://github.com/1inch/profanity2/issues/5) |
 
 ## Credits
 
