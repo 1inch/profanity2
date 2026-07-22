@@ -79,10 +79,10 @@ profanity2 will print an empty device list. Build natively with MSYS2 instead.
 
 ## Troubleshooting
 
-| Symptom | Fix |
-|---|---|
-| `fatal error: CL/cl.h: No such file or directory` | OpenCL headers not installed / not in include path — see steps above |
-| `process_begin: CreateProcess(NULL, uname -s, ...) failed` | You ran `make` outside an MSYS2 shell; use the MSYS2 UCRT64 shell or the direct `g++` command |
-| `cannot find -lOpenCL` | Install `mingw-w64-ucrt-x86_64-opencl-icd` or pass `-L<path to OpenCL.lib/libOpenCL.dll.a>` |
-| Output stops after `Devices:` (empty list) | Install/update your GPU driver; don't run under WSL2 |
-| `error: code model 'large' not supported` | Build without `-mcmodel=large` (see the note in step 3) |
+| Symptom | Fix | Seen in |
+|---|---|---|
+| `fatal error: CL/cl.h: No such file or directory` | OpenCL headers not installed / not in include path — see steps above | [#31](https://github.com/1inch/profanity2/issues/31), [#27](https://github.com/1inch/profanity2/issues/27), [#23](https://github.com/1inch/profanity2/issues/23), [#20](https://github.com/1inch/profanity2/issues/20) |
+| `process_begin: CreateProcess(NULL, uname -s, ...) failed` | You ran `make` outside an MSYS2 shell; use the MSYS2 UCRT64 shell or the direct `g++` command | [#26](https://github.com/1inch/profanity2/issues/26), [#21](https://github.com/1inch/profanity2/issues/21) |
+| `cannot find -lOpenCL` | Install `mingw-w64-ucrt-x86_64-opencl-icd` or pass `-L<path to OpenCL.lib/libOpenCL.dll.a>` | |
+| Output stops after `Devices:` (empty list) | Install/update your GPU driver; don't run under WSL2 | [#17](https://github.com/1inch/profanity2/issues/17) |
+| `error: code model 'large' not supported` | Build without `-mcmodel=large` (see the note in step 3) | |
