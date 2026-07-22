@@ -161,6 +161,140 @@ usage: ./profanity2 [OPTIONS]
       corners to improve overall performance.
 ```
 
+## Usage examples
+
+All examples below require the mandatory `-z` argument: your seed public key as a 128-symbol
+hex string without the `04` prefix (see
+[Getting public key for mandatory `-z` parameter](#getting-public-key-for-mandatory--z-parameter)).
+In the examples it is abbreviated as `$PUBLIC_KEY`:
+
+```bash
+export PUBLIC_KEY="HEX_PUBLIC_KEY_128_CHARS_LONG"
+```
+
+### Prefix (`--leading`)
+
+Score on addresses starting with as many repetitions of a single hex character as possible.
+The score is the number of leading characters, so the tool keeps running and prints better
+and better results:
+
+```bash
+# 0x00000... (as many leading zeros as possible)
+./profanity2.x64 --leading 0 -z $PUBLIC_KEY
+
+# 0xaaaaa... (as many leading "a"s as possible)
+./profanity2.x64 --leading a -z $PUBLIC_KEY
+```
+
+### Exact pattern (`--matching`)
+
+`--matching` takes a hex pattern up to 40 characters long (the length of an address without `0x`).
+Every position that is **not** a valid hex character (conventionally `X`) is a wildcard that
+matches anything. The score is the number of matched fixed positions.
+
+**Prefix** — a short pattern is anchored to the beginning of the address:
+
+```bash
+# 0xdead...
+./profanity2.x64 --matching dead -z $PUBLIC_KEY
+```
+
+**Suffix** — pad the beginning of a full 40-character pattern with `X` wildcards:
+
+```bash
+# 0x...999999
+./profanity2.x64 --matching XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX999999 -z $PUBLIC_KEY
+```
+
+**Prefix and suffix at the same time** — fix both ends, wildcard the middle:
+
+```bash
+# 0x1111...2222
+./profanity2.x64 --matching 1111XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX2222 -z $PUBLIC_KEY
+
+# 0xbad...bad
+./profanity2.x64 --matching badXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXbad -z $PUBLIC_KEY
+```
+
+**Arbitrary positions** — any mix of fixed characters and wildcards works:
+
+```bash
+# 0xXXXXcafeXXXX...XXXX (characters 5-8 are "cafe")
+./profanity2.x64 --matching XXXXcafeXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX -z $PUBLIC_KEY
+```
+
+Note: only results improving the best score so far are printed, so after a result matching
+all fixed positions is found nothing better can appear — stop the program with `Ctrl-C`.
+Keep in mind that every additional fixed character multiplies the expected search time by 16.
+
+### Character classes anywhere (`--zeros`, `--letters`, `--numbers`)
+
+Score on the total amount of matching characters anywhere in the address:
+
+```bash
+# As many "0" characters as possible, e.g. 0x00aa0e050bb03c0b066e00c0f70a03d0d000b0d7
+./profanity2.x64 --zeros -z $PUBLIC_KEY
+
+# Only letters (a-f), e.g. 0xffcadbfaecfcdeaddeedabadfeedfacebeefcafe
+./profanity2.x64 --letters -z $PUBLIC_KEY
+
+# Only numbers (0-9), e.g. 0x8896339129744478701529940603494328137361
+./profanity2.x64 --numbers -z $PUBLIC_KEY
+```
+
+### Ranges (`--leading-range`, `--range`)
+
+Score on characters within a given hex range, set with `-m/--min` and `-M/--max`
+(0 is `0`, 15 is `f`):
+
+```bash
+# Leading characters in range 0-1, e.g. 0x0110100...
+./profanity2.x64 --leading-range -m 0 -M 1 -z $PUBLIC_KEY
+
+# Leading characters in range a-c, e.g. 0xcbabacc...
+./profanity2.x64 --leading-range -m 10 -M 12 -z $PUBLIC_KEY
+
+# Characters in range 0-1 anywhere in the address
+./profanity2.x64 --range -m 0 -M 1 -z $PUBLIC_KEY
+```
+
+### Other scoring modes (`--mirror`, `--leading-doubles`, `--zero-bytes`)
+
+```bash
+# Address mirrored around its center, e.g. 0x...abccba...
+./profanity2.x64 --mirror -z $PUBLIC_KEY
+
+# Leading pairs of identical characters, e.g. 0x00fFcc55...
+./profanity2.x64 --leading-doubles -z $PUBLIC_KEY
+
+# As many zero BYTES (pairs "00" at even positions) as possible; such addresses
+# save gas when used in calldata, e.g. 0x00815e00c0fd4a2d00ae00fa00e300ee00fc0034
+./profanity2.x64 --zero-bytes -z $PUBLIC_KEY
+```
+
+### Vanity contract address (`--contract`)
+
+Add `--contract` to any scoring mode to score the address of the **contract deployed by the
+zeroth transaction** of the found account instead of the account address itself:
+
+```bash
+# Account whose first deployed contract gets a 0x00000... address
+./profanity2.x64 --contract --leading 0 -z $PUBLIC_KEY
+
+# Account whose first deployed contract address has the most zero bytes
+./profanity2.x64 --contract --zero-bytes -z $PUBLIC_KEY
+```
+
+### Benchmark and device control
+
+```bash
+# Measure hashrate without any scoring
+./profanity2.x64 --benchmark -z $PUBLIC_KEY
+
+# Multiple GPUs are used automatically; skip a device (e.g. an integrated GPU) by index
+./profanity2.x64 --leading 0 -s 1 -z $PUBLIC_KEY
+```
+
 ### Benchmarks - Current version
 |Model|Clock Speed|Memory Speed|Modified straps|Speed|Time to match eight characters
 |:-:|:-:|:-:|:-:|:-:|:-:|
