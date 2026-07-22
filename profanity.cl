@@ -282,21 +282,20 @@ mp_word mp_mul_word_add_extra(mp_number * const r, const mp_number * const a, co
 //
 // This is a special function only used for modular multiplication.
 //
-// Optimized code (secp256k1 fast reduction)
-// by Rodrigo Madera (madera at acm dot org).
+// Optimization (secp256k1 fast reduction) contributed by Rodrigo Madera (@madera).
 //
-// Optimization:
+// The secp256k1 prime has the special form:
 //
-//   pmod = 2^256 - p
+//   p = 2^256 - pmod, where pmod = 2^32 + 977 = 0x1000003D1
 //
-//   p = 0x1000003D1 = 2^32 + 977
+// Therefore, working modulo 2^256:
 //
-//   q * pmod = q * (2^256 - p)
-//            = q * 2^256 - q * p
+//   q * p = q * (2^256 - pmod) = q * 2^256 - q * pmod == -q * pmod  (mod 2^256)
 //
-//   (r - q * pmod) mod 2^256 == (r + q*p) mod 2^256
+//   (r - q * p) mod 2^256 == (r + q * pmod) mod 2^256
 //
-// This reduces the amount of bits used giving us 20-35% speed improvements.
+// So instead of multiplying q by the full 256-bit p and subtracting, we multiply q by the
+// 33-bit pmod and add. This reduces the amount of bits used, giving us 20-35% speed improvements.
 //
 void mp_mul_mod_word_sub(mp_number * const r, const mp_word w, const bool withModHigher) {
 	const mp_word lo977 = 977u * w;
