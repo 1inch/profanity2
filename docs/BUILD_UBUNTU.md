@@ -96,3 +96,8 @@ parameter and for usage examples of all scoring modes.
 | Output stops after `Devices:` (empty list) | No OpenCL runtime installed — see step 2, verify with `clinfo` |
 | Garbage device name, `unknown exception occured` | Broken/mismatched GPU driver — reinstall the vendor driver |
 | Works but private keys don't match addresses (AMD) | Update to a recent ROCm driver (see issue [#13](https://github.com/1inch/profanity2/issues/13)) |
+
+## Credits
+
+This guide is based in part on the setup tips shared by [@umiiii](https://github.com/umiiii)
+in issue [#39](https://github.com/1inch/profanity2/issues/39) — thanks for the contribution!
