@@ -277,31 +277,52 @@ mp_word mp_mul_word_add_extra(mp_number * const r, const mp_number * const a, co
 	return *extra < cM ? 1 : (*extra == cM ? cA : 0);
 }
 
-// Multiplies a number with a word, potentially adds modhigher to it, and then subtracts it from en existing number, no extra words, no overflow
-// This is a special function only used for modular multiplication
+// Multiplies a number with a word, potentially adds modhigher to it, and then subtracts it from
+// an existing number, no extra words, no overflow.
+//
+// This is a special function only used for modular multiplication.
+//
+// Optimized code (secp256k1 fast reduction)
+// by Rodrigo Madera (madera at acm dot org).
+//
+// Optimization:
+//
+//   pmod = 2^256 - p
+//
+//   p = 0x1000003D1 = 2^32 + 977
+//
+//   q * pmod = q * (2^256 - p)
+//            = q * 2^256 - q * p
+//
+//   (r - q * pmod) mod 2^256 == (r + q*p) mod 2^256
+//
+// This reduces the amount of bits used giving us 20-35% speed improvements.
+//
 void mp_mul_mod_word_sub(mp_number * const r, const mp_word w, const bool withModHigher) {
-	// Having these numbers declared here instead of using the global values in __constant address space seems to lead
-	// to better optimizations by the compiler on my GTX 1070.
-	mp_number mod = { { 0xfffffc2f, 0xfffffffe, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff} };
-	mp_number modhigher = { {0x00000000, 0xfffffc2f, 0xfffffffe, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff} };
+	const mp_word lo977 = 977u * w;
+	const mp_word hi977 = mul_hi(977u, w);
 
-	mp_word cM = 0; // Carry for multiplication
-	mp_word cS = 0; // Carry for subtraction
-	mp_word tS = 0; // Temporary storage for subtraction
-	mp_word tM = 0; // Temporary storage for multiplication
-	mp_word cA = 0; // Carry for addition of modhigher
+	const mp_word p0 = lo977;
+	const ulong p1_full = (ulong)w + hi977 + (withModHigher ? 0x000003D1u : 0u);
+	const mp_word p1 = (mp_word)p1_full;
+	const mp_word p2 = (mp_word)(p1_full >> 32) + (withModHigher ? 1u : 0u);
 
-	for (mp_word i = 0; i < MP_WORDS; ++i) {
-		tM = (mod.d[i] * w + cM);
-		cM = mul_hi(mod.d[i], w) + (tM < cM);
+	ulong s = (ulong)r->d[0] + p0;
+	r->d[0] = (mp_word)s;
+	mp_word c = (mp_word)(s >> 32);
 
-		tM += (withModHigher ? modhigher.d[i] : 0) + cA;
-		cA = tM < (withModHigher ? modhigher.d[i] : 0) ? 1 : (tM == (withModHigher ? modhigher.d[i] : 0) ? cA : 0);
+	s = (ulong)r->d[1] + p1 + c;
+	r->d[1] = (mp_word)s;
+	c = (mp_word)(s >> 32);
 
-		tS = r->d[i] - tM - cS;
-		cS = tS > r->d[i] ? 1 : (tS == r->d[i] ? cS : 0);
+	s = (ulong)r->d[2] + p2 + c;
+	r->d[2] = (mp_word)s;
+	c = (mp_word)(s >> 32);
 
-		r->d[i] = tS;
+	for (mp_word i = 3; i < MP_WORDS; ++i) {
+		s = (ulong)r->d[i] + c;
+		r->d[i] = (mp_word)s;
+		c = (mp_word)(s >> 32);
 	}
 }
 
