@@ -2,15 +2,37 @@ CC=g++
 CDEFINES=
 SOURCES=Dispatcher.cpp Mode.cpp precomp.cpp profanity.cpp SpeedSample.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
-EXECUTABLE=profanity2.x64
 
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	LDFLAGS=-framework OpenCL
-	CFLAGS=-c -std=c++11 -Wall -O2
+# On Windows the OS environment variable is always set to Windows_NT.
+# Checking it first avoids calling `uname`, which is unavailable outside
+# of MSYS2/Cygwin shells (e.g. when using mingw32-make from cmd.exe).
+ifeq ($(OS),Windows_NT)
+	EXECUTABLE=profanity2.exe
+	# -mcmodel=large is not reliably supported by MinGW GCC on Windows
+	# targets, and htonl/ntohl live in ws2_32 there.
+	# -static bundles the MinGW runtimes (libstdc++, libgcc, winpthread) so
+	# the exe runs outside the MSYS2 shell; OpenCL.dll itself must stay
+	# dynamic (it is the system ICD loader), but with -static the linker
+	# skips .dll.a import libs for -lOpenCL, hence the explicit -l: name.
+	LDFLAGS=-s -static -l:libOpenCL.dll.a -lws2_32
+	CFLAGS=-c -std=c++11 -Wall -mmmx -O2
+	# MSYSTEM is set inside MSYS2 shells, where unix commands are available.
+	ifdef MSYSTEM
+		RM=rm -f
+	else
+		RM=del /Q
+	endif
 else
-	LDFLAGS=-s -lOpenCL -mcmodel=large
-	CFLAGS=-c -std=c++11 -Wall -mmmx -O2 -mcmodel=large 
+	EXECUTABLE=profanity2.x64
+	RM=rm -f
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Darwin)
+		LDFLAGS=-framework OpenCL
+		CFLAGS=-c -std=c++11 -Wall -O2
+	else
+		LDFLAGS=-s -lOpenCL -mcmodel=large
+		CFLAGS=-c -std=c++11 -Wall -mmmx -O2 -mcmodel=large
+	endif
 endif
 
 all: $(SOURCES) $(EXECUTABLE)
@@ -22,5 +44,4 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $(CDEFINES) $< -o $@
 
 clean:
-	rm -rf *.o
-
+	$(RM) *.o

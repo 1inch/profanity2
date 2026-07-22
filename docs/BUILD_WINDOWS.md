@@ -1,11 +1,11 @@
 # Building and running on Windows
 
-The repository ships with a `Makefile` written for Unix-like environments, so the
-easiest way to build on Windows is the [MSYS2](https://www.msys2.org/) environment,
-which provides `g++`, `make` and prebuilt OpenCL packages. Plain MinGW or `g++`
-called from `cmd.exe`/Git Bash will fail with errors like
-`CL/cl.h: No such file or directory` or
-`process_begin: CreateProcess(NULL, uname -s, ...) failed` — use MSYS2 instead.
+The `Makefile` supports Windows out of the box: it detects the platform and builds
+`profanity2.exe`. What it cannot do for you is provide a compiler and the OpenCL
+headers/libraries — bare `g++` from `cmd.exe`/Git Bash without them fails with
+errors like `CL/cl.h: No such file or directory`. The easiest way to get a complete
+toolchain is the [MSYS2](https://www.msys2.org/) environment, which provides `g++`,
+`make` and prebuilt OpenCL packages.
 
 ## Option A (recommended): MSYS2 / MinGW-w64
 
@@ -32,13 +32,24 @@ pacman -S --needed make mingw-w64-ucrt-x86_64-gcc \
 From the repository root inside the UCRT64 shell:
 
 ```bash
-g++ -std=c++11 -Wall -O2 Dispatcher.cpp Mode.cpp precomp.cpp profanity.cpp SpeedSample.cpp \
-    -lOpenCL -o profanity2.exe
+make
 ```
 
-> Note: the stock `Makefile` passes `-mcmodel=large`, which some MinGW builds of
-> GCC do not support. The direct command above builds the same sources without it;
-> alternatively run `make CFLAGS="-c -std=c++11 -Wall -O2" LDFLAGS="-lOpenCL -s" EXECUTABLE=profanity2.exe`.
+The `Makefile` detects Windows automatically (via the `OS=Windows_NT` environment
+variable) and produces `profanity2.exe`. The MinGW runtimes (`libstdc++`, `libgcc`,
+`winpthread`) are linked statically, so the resulting exe is self-contained and
+runs outside the MSYS2 shell — only `OpenCL.dll` is loaded dynamically, and that
+one ships with your GPU driver.
+
+If you prefer to build without `make`, the equivalent direct command is:
+
+```bash
+g++ -std=c++11 -Wall -O2 Dispatcher.cpp Mode.cpp precomp.cpp profanity.cpp SpeedSample.cpp \
+    -static -l:libOpenCL.dll.a -lws2_32 -o profanity2.exe
+```
+
+(`-l:libOpenCL.dll.a` names the OpenCL import library explicitly because with
+`-static` the linker would otherwise skip `.dll.a` files when resolving `-lOpenCL`.)
 
 ### 4. Run
 
@@ -49,11 +60,30 @@ runtime on Windows). Then:
 ./profanity2.exe --leading 0 -z HEX_PUBLIC_KEY_128_CHARS_LONG
 ```
 
-If you launch `profanity2.exe` outside the MSYS2 shell (e.g. from Explorer or
-`cmd.exe`) and get missing-DLL errors, copy the required runtime DLLs
-(`libstdc++-6.dll`, `libgcc_s_seh-1.dll`, `libwinpthread-1.dll`) from
-`C:\msys64\ucrt64\bin` next to the executable, or link statically by adding
-`-static` to the build command.
+The executable is statically linked against the MinGW runtimes, so it can be
+launched from anywhere (Explorer, `cmd.exe`, PowerShell) — no extra DLLs needed.
+If you built with a custom command without `-static` and get missing-DLL errors
+outside the MSYS2 shell, either add `-static` or copy `libstdc++-6.dll`,
+`libgcc_s_seh-1.dll` and `libwinpthread-1.dll` from `C:\msys64\ucrt64\bin` next
+to the executable.
+
+### 5. Generating the seed public key for `-z`
+
+Windows does not ship `openssl`, and the key-generation one-liners in the
+[README](../README.md#getting-public-key-for-mandatory--z-parameter) also need
+`xxd` and `sed`, so run them from a Unix-like shell:
+
+- **MSYS2** (same shell you build in): install the missing tools first —
+
+  ```bash
+  pacman -S --needed openssl vim   # vim provides xxd
+  ```
+
+- **Git Bash** ([Git for Windows](https://git-scm.com/download/win)): `openssl`,
+  `xxd` and `sed` are already bundled, the README commands work as-is.
+
+As always: generate the key locally, never share the private key and never use
+online key generators or calculators.
 
 ## Option B: linking against a vendor OpenCL SDK
 
@@ -67,7 +97,14 @@ g++ -std=c++11 -Wall -O2 \
     -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/include" \
     -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/lib/x64" \
     Dispatcher.cpp Mode.cpp precomp.cpp profanity.cpp SpeedSample.cpp \
-    -lOpenCL -o profanity2.exe
+    -lOpenCL -lws2_32 -o profanity2.exe
+```
+
+The same works through `make`:
+
+```bash
+make CDEFINES='-I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/include"' \
+     LDFLAGS='-s -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/lib/x64" -lOpenCL -lws2_32'
 ```
 
 ## What about WSL2?
@@ -82,7 +119,6 @@ profanity2 will print an empty device list. Build natively with MSYS2 instead.
 | Symptom | Fix | Seen in |
 |---|---|---|
 | `fatal error: CL/cl.h: No such file or directory` | OpenCL headers not installed / not in include path — see steps above | [#31](https://github.com/1inch/profanity2/issues/31), [#27](https://github.com/1inch/profanity2/issues/27), [#23](https://github.com/1inch/profanity2/issues/23), [#20](https://github.com/1inch/profanity2/issues/20) |
-| `process_begin: CreateProcess(NULL, uname -s, ...) failed` | You ran `make` outside an MSYS2 shell; use the MSYS2 UCRT64 shell or the direct `g++` command | [#26](https://github.com/1inch/profanity2/issues/26), [#21](https://github.com/1inch/profanity2/issues/21) |
+| `process_begin: CreateProcess(NULL, uname -s, ...) failed` | You are on an old checkout whose `Makefile` called `uname` on Windows — update to latest `master` | [#26](https://github.com/1inch/profanity2/issues/26), [#21](https://github.com/1inch/profanity2/issues/21) |
 | `cannot find -lOpenCL` | Install `mingw-w64-ucrt-x86_64-opencl-icd` or pass `-L<path to OpenCL.lib/libOpenCL.dll.a>` | |
 | Output stops after `Devices:` (empty list) | Install/update your GPU driver; don't run under WSL2 | [#17](https://github.com/1inch/profanity2/issues/17) |
-| `error: code model 'large' not supported` | Build without `-mcmodel=large` (see the note in step 3) | |
