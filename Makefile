@@ -10,7 +10,11 @@ ifeq ($(OS),Windows_NT)
 	EXECUTABLE=profanity2.exe
 	# -mcmodel=large is not reliably supported by MinGW GCC on Windows
 	# targets, and htonl/ntohl live in ws2_32 there.
-	LDFLAGS=-s -lOpenCL -lws2_32
+	# -static bundles the MinGW runtimes (libstdc++, libgcc, winpthread) so
+	# the exe runs outside the MSYS2 shell; OpenCL.dll itself must stay
+	# dynamic (it is the system ICD loader), but with -static the linker
+	# skips .dll.a import libs for -lOpenCL, hence the explicit -l: name.
+	LDFLAGS=-s -static -l:libOpenCL.dll.a -lws2_32
 	CFLAGS=-c -std=c++11 -Wall -mmmx -O2
 	# MSYSTEM is set inside MSYS2 shells, where unix commands are available.
 	ifdef MSYSTEM

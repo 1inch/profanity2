@@ -36,13 +36,20 @@ make
 ```
 
 The `Makefile` detects Windows automatically (via the `OS=Windows_NT` environment
-variable) and produces `profanity2.exe`. If you prefer to build without `make`,
-the equivalent direct command is:
+variable) and produces `profanity2.exe`. The MinGW runtimes (`libstdc++`, `libgcc`,
+`winpthread`) are linked statically, so the resulting exe is self-contained and
+runs outside the MSYS2 shell — only `OpenCL.dll` is loaded dynamically, and that
+one ships with your GPU driver.
+
+If you prefer to build without `make`, the equivalent direct command is:
 
 ```bash
 g++ -std=c++11 -Wall -O2 Dispatcher.cpp Mode.cpp precomp.cpp profanity.cpp SpeedSample.cpp \
-    -lOpenCL -lws2_32 -o profanity2.exe
+    -static -l:libOpenCL.dll.a -lws2_32 -o profanity2.exe
 ```
+
+(`-l:libOpenCL.dll.a` names the OpenCL import library explicitly because with
+`-static` the linker would otherwise skip `.dll.a` files when resolving `-lOpenCL`.)
 
 ### 4. Run
 
@@ -53,11 +60,12 @@ runtime on Windows). Then:
 ./profanity2.exe --leading 0 -z HEX_PUBLIC_KEY_128_CHARS_LONG
 ```
 
-If you launch `profanity2.exe` outside the MSYS2 shell (e.g. from Explorer or
-`cmd.exe`) and get missing-DLL errors, copy the required runtime DLLs
-(`libstdc++-6.dll`, `libgcc_s_seh-1.dll`, `libwinpthread-1.dll`) from
-`C:\msys64\ucrt64\bin` next to the executable, or link statically by adding
-`-static` to the build command.
+The executable is statically linked against the MinGW runtimes, so it can be
+launched from anywhere (Explorer, `cmd.exe`, PowerShell) — no extra DLLs needed.
+If you built with a custom command without `-static` and get missing-DLL errors
+outside the MSYS2 shell, either add `-static` or copy `libstdc++-6.dll`,
+`libgcc_s_seh-1.dll` and `libwinpthread-1.dll` from `C:\msys64\ucrt64\bin` next
+to the executable.
 
 ### 5. Generating the seed public key for `-z`
 
