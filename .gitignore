@@ -1,5 +1,6 @@
 # Makefile artifacts
 *.o
 *.so
+*.x64
 cache-opencl.*
 bin
