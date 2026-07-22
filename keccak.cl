@@ -125,7 +125,7 @@ __constant ulong keccakf_rndc[24] = {
 // Barely a bottleneck. No need to tinker more.
 void sha3_keccakf(ethhash * const h)
 {
-	ulong * const st = &h->q;
+	ulong * const st = (ulong * const)&h->q[0];
 	h->d[33] ^= 0x80000000;
 	ulong t0, t1, t2, t3, t4;
 
