@@ -52,6 +52,39 @@ sum (63 symbols):       bc7506af1b2484069d6ed3ea093c5123d83e2444d9c0a1cf277bf136
 private key (padded):  0bc7506af1b2484069d6ed3ea093c5123d83e2444d9c0a1cf277bf136fb46191
 ```
 
+# Building
+
+### macOS
+
+OpenCL ships with the system, so only the Xcode Command Line Tools are needed:
+
+```bash
+xcode-select --install   # skip if already installed
+make
+```
+
+This produces `profanity2.x64` in the repository root. Works on both Intel and
+Apple Silicon (M1/M2/M3/M4) Macs.
+
+### Ubuntu / Linux
+
+See [docs/BUILD_UBUNTU.md](docs/BUILD_UBUNTU.md). In short:
+
+```bash
+sudo apt install -y build-essential opencl-headers ocl-icd-opencl-dev clinfo
+make
+```
+
+plus the OpenCL runtime (driver) of your GPU vendor — the document covers
+NVIDIA/AMD/Intel setup and common errors.
+
+### Windows
+
+See [docs/BUILD_WINDOWS.md](docs/BUILD_WINDOWS.md) — building with MSYS2/MinGW-w64
+or against a vendor OpenCL SDK, plus troubleshooting for the most common errors
+(`CL/cl.h: No such file or directory`, `CreateProcess(NULL, uname -s, ...) failed`,
+empty device list, WSL2 limitations).
+
 # Usage
 ```
 usage: ./profanity2 [OPTIONS]
