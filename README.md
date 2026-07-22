@@ -30,7 +30,7 @@ $ openssl ec -inform DER -text -noout -in <(cat <(echo -n "302e0201010420") <(ec
 
 Use private keys as 64-symbol hexadecimal string WITHOUT `0x` prefix:
 ```bash
-(echo 'ibase=16;obase=10' && (echo '(PRIVATE_KEY_A + PRIVATE_KEY_B) % FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F' | tr '[:lower:]' '[:upper:]')) | bc
+(echo 'ibase=16;obase=10' && (echo '(PRIVATE_KEY_A + PRIVATE_KEY_B) % FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141' | tr '[:lower:]' '[:upper:]')) | bc
 ```
 
 ### Python
@@ -38,17 +38,19 @@ Use private keys as 64-symbol hexadecimal string WITHOUT `0x` prefix:
 Use private keys as 64-symbol hexadecimal string WITH `0x` prefix:
 ```bash
 $ python3
->>> hex((PRIVATE_KEY_A + PRIVATE_KEY_B) % 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F)
+>>> "%064x" % ((PRIVATE_KEY_A + PRIVATE_KEY_B) % 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141)
 ```
 
-### (BUG) Leading Zero Example
-```bash
->>> (echo 'ibase=16;obase=10' && (echo '(0bc657b0af28b743c7f0d49c4de78efd47a5c8923dabfdef051fff5cdc7c30e7 + 0x0000f8ba428990fca1e618a252ac3614f5de19b20ff00c2ded57bfb6933830aa) % FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F' | tr '[:lower:]' '[:upper:]')) | bc
->>> BC7506AF1B2484069D6ED3EA093C5123D83E2444D9C0A1CF277BF226FB49AD0
->>> 0BC7506AF1B2484069D6ED3EA093C5123D83E2444D9C0A1CF277BF226FB49AD0 (Pad with 1 zero as length only 63)
-```
+### Leading zeros
 
-Note that if **less than 64-symbol** is generated, simply **add leading zeroes** to the private key. This occurs due to the summation of `PRIVATE_KEY_A` & `PRIVATE_KEY_B` with leading 0s not being displayed in final hex generated. Example above has 1 overlapping leading 0 thus we add an additional zero.
+The combined private key must be used as a **64-symbol** hexadecimal string. Neither `bc` nor Python's `hex()` prints leading zeros, so whenever the sum has fewer than 64 symbols (about 1 chance in 16), pad it with leading zeros. The Python snippet above does this automatically thanks to `"%064x"`. Example:
+
+```
+PRIVATE_KEY_A =        0bc657b0af28b743c7f0d49c4de78efd47a5c8923dabfdef051fff5cdc7c30e7
+PRIVATE_KEY_B =        0000f8ba428990fca1e618a252ac3614f5de19b20ff00c2ded57bfb6933830aa
+sum (63 symbols):       bc7506af1b2484069d6ed3ea093c5123d83e2444d9c0a1cf277bf136fb46191
+private key (padded):  0bc7506af1b2484069d6ed3ea093c5123d83e2444d9c0a1cf277bf136fb46191
+```
 
 # Usage
 ```
