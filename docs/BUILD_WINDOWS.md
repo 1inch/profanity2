@@ -59,6 +59,24 @@ If you launch `profanity2.exe` outside the MSYS2 shell (e.g. from Explorer or
 `C:\msys64\ucrt64\bin` next to the executable, or link statically by adding
 `-static` to the build command.
 
+### 5. Generating the seed public key for `-z`
+
+Windows does not ship `openssl`, and the key-generation one-liners in the
+[README](../README.md#getting-public-key-for-mandatory--z-parameter) also need
+`xxd` and `sed`, so run them from a Unix-like shell:
+
+- **MSYS2** (same shell you build in): install the missing tools first —
+
+  ```bash
+  pacman -S --needed openssl vim   # vim provides xxd
+  ```
+
+- **Git Bash** ([Git for Windows](https://git-scm.com/download/win)): `openssl`,
+  `xxd` and `sed` are already bundled, the README commands work as-is.
+
+As always: generate the key locally, never share the private key and never use
+online key generators or calculators.
+
 ## Option B: linking against a vendor OpenCL SDK
 
 If you prefer not to install the MSYS2 OpenCL packages, any vendor OpenCL SDK
