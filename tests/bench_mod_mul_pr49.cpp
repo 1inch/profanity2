@@ -1,5 +1,5 @@
-/* bench_mod_mul.cpp
- * =================
+/* bench_mod_mul_pr49.cpp
+ * ======================
  * Benchmark: mp_mod_mul with the old (pre-PR#49) vs new (optimized) mp_mul_mod_word_sub.
  *
  * Each work item performs a dependency-chained sequence of modular multiplications
@@ -14,7 +14,7 @@
  * exactly the code path the PR optimizes.
  *
  * Build & run (see tests/Makefile):
- *   cd tests && make && ./bench_mod_mul.x64 [global_size] [iterations] [repetitions]
+ *   cd tests && make && ./bench_mod_mul_pr49.x64 [global_size] [iterations] [repetitions]
  */
 
 #include <chrono>

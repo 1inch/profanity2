@@ -4,12 +4,12 @@
 #
 # Usage:
 #   make
-#   ./test_correctness.x64 [num_random_cases]
-#   ./bench_mod_mul.x64 [global_size] [iterations] [repetitions]
+#   ./test_correctness_pr49.x64 [num_random_cases]
+#   ./bench_mod_mul_pr49.x64 [global_size] [iterations] [repetitions]
 
 CC=g++
 CDEFINES=
-EXECUTABLES=test_correctness.x64 bench_mod_mul.x64
+EXECUTABLES=test_correctness_pr49.x64 bench_mod_mul_pr49.x64
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -22,11 +22,11 @@ endif
 
 all: $(EXECUTABLES)
 
-test_correctness.x64: test_correctness.cpp testutil.hpp ../types.hpp
-	$(CC) $(CFLAGS) $(CDEFINES) test_correctness.cpp $(LDFLAGS) -o $@
+test_correctness_pr49.x64: test_correctness_pr49.cpp testutil.hpp ../types.hpp
+	$(CC) $(CFLAGS) $(CDEFINES) test_correctness_pr49.cpp $(LDFLAGS) -o $@
 
-bench_mod_mul.x64: bench_mod_mul.cpp testutil.hpp ../types.hpp
-	$(CC) $(CFLAGS) $(CDEFINES) bench_mod_mul.cpp $(LDFLAGS) -o $@
+bench_mod_mul_pr49.x64: bench_mod_mul_pr49.cpp testutil.hpp ../types.hpp
+	$(CC) $(CFLAGS) $(CDEFINES) bench_mod_mul_pr49.cpp $(LDFLAGS) -o $@
 
 clean:
 	rm -rf $(EXECUTABLES)

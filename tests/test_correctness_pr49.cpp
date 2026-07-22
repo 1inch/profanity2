@@ -1,5 +1,5 @@
-/* test_correctness.cpp
- * ====================
+/* test_correctness_pr49.cpp
+ * =========================
  * Correctness and equivalence tests for the mp_mul_mod_word_sub optimization (PR #49).
  *
  * Runs the actual OpenCL kernels from profanity.cl (via tests/harness.cl wrappers) and checks:
@@ -17,7 +17,7 @@
  *    correct property to check.)
  *
  * Build & run (see tests/Makefile):
- *   cd tests && make && ./test_correctness.x64 [num_random_cases]
+ *   cd tests && make && ./test_correctness_pr49.x64 [num_random_cases]
  */
 
 #include <cstdio>
