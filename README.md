@@ -106,7 +106,7 @@ usage: ./profanity2 [OPTIONS]
     --leading <single hex>  Score on hashes leading with given hex character.
     --matching <hex string> Score on hashes matching given hex string.
     -e, --exact <hex mask>  Print every hash matching the given mask exactly,
-                            not just the best one. Non-hex characters (e.g. _)
+                            not just the best one. Non-hex characters (e.g. X)
                             are wildcards. Runs until interrupted.
 
   Advanced modes:
@@ -137,7 +137,7 @@ usage: ./profanity2 [OPTIONS]
     ./profanity2 --leading f -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --matching dead -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --matching badXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXbad -z HEX_PUBLIC_KEY_128_CHARS_LONG
-    ./profanity2 --exact 1337________________________________c0de -z HEX_PUBLIC_KEY_128_CHARS_LONG
+    ./profanity2 --exact 1337XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXc0de -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --leading-range -m 0 -M 1 -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --leading-range -m 10 -M 12 -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --range -m 0 -M 1 -z HEX_PUBLIC_KEY_128_CHARS_LONG
@@ -241,10 +241,10 @@ each one:
 
 ```bash
 # Every address 0x1337...c0de found, not just the first one
-./profanity2.x64 --exact 1337________________________________c0de -z $PUBLIC_KEY
+./profanity2.x64 --exact 1337XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXc0de -z $PUBLIC_KEY
 
 # Every address with at least five leading zeros
-./profanity2.x64 --exact 00000___________________________________ -z $PUBLIC_KEY
+./profanity2.x64 --exact 00000XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX -z $PUBLIC_KEY
 ```
 
 The first matches take longer to appear than with `--matching` (partial matches are not
