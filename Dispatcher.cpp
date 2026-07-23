@@ -98,7 +98,14 @@ static void printResult(cl_ulong4 seed, cl_ulong round, result r, cl_uchar score
 
 	// Print
 	const std::string strVT100ClearLine = "\33[2K\r";
-	std::cout << strVT100ClearLine << "  Time: " << std::setw(5) << seconds << "s Score: " << std::setw(2) << (int) score << " Private: 0x" << strPrivate << ' ';
+	std::cout << strVT100ClearLine << "  Time: " << std::setw(5) << seconds << "s";
+
+	// Exact mode has no scoring, every result is a full match
+	if (mode.name != "exact") {
+		std::cout << " Score: " << std::setw(2) << (int) score;
+	}
+
+	std::cout << " Private: 0x" << strPrivate << ' ';
 
 	std::cout << mode.transformName();
 	std::cout << ": 0x" << strPublic << std::endl;
@@ -405,6 +412,14 @@ void Dispatcher::dispatch(Device & d) {
 	cl_event event;
 	d.m_memResult.read(false, &event);
 
+	if (m_mode.name == "exact") {
+		// Reset the match counter before this round's kernel appends new
+		// results. The in-order queue guarantees this write executes after
+		// the read above has captured the previous round's results.
+		static const cl_uint zero = 0;
+		d.m_memResult.writeRegion(false, 0, sizeof(zero), &zero);
+	}
+
 #ifdef PROFANITY_DEBUG
 	cl_event eventInverse;
 	cl_event eventIterate;
@@ -435,7 +450,36 @@ void Dispatcher::dispatch(Device & d) {
 	OpenCLException::throwIfError("failed to set custom callback", res);
 }
 
+// In exact mode the kernel appends every full match to the result buffer:
+// element [0] holds the number of matches found during the last round and
+// elements [1..PROFANITY_MAX_SCORE] hold the matches themselves. The counter
+// is reset before every round (see dispatch()), so everything in the buffer
+// is new and can be printed as-is.
+void Dispatcher::handleExactResult(Device & d) {
+	const cl_uint count = d.m_memResult[0].found;
+	if (count == 0) {
+		return;
+	}
+
+	const cl_uint stored = count < PROFANITY_MAX_SCORE ? count : PROFANITY_MAX_SCORE;
+
+	std::lock_guard<std::mutex> lock(m_mutex);
+	for (cl_uint i = 0; i < stored; ++i) {
+		printResult(d.m_clSeed, d.m_round, d.m_memResult[i + 1], 0, timeStart, m_mode);
+	}
+
+	if (count > stored) {
+		const std::string strVT100ClearLine = "\33[2K\r";
+		std::cout << strVT100ClearLine << "  warning: " << (count - stored) << " additional matches were found this round but did not fit the result buffer (" << PROFANITY_MAX_SCORE << " entries); use a more specific mask" << std::endl;
+	}
+}
+
 void Dispatcher::handleResult(Device & d) {
+	if (m_mode.name == "exact") {
+		handleExactResult(d);
+		return;
+	}
+
 	for (auto i = PROFANITY_MAX_SCORE; i > m_clScoreMax; --i) {
 		result & r = d.m_memResult[i];
 

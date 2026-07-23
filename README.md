@@ -105,6 +105,9 @@ usage: ./profanity2 [OPTIONS]
   Modes with arguments:
     --leading <single hex>  Score on hashes leading with given hex character.
     --matching <hex string> Score on hashes matching given hex string.
+    -e, --exact <hex mask>  Print every hash matching the given mask exactly,
+                            not just the best one. Non-hex characters (e.g. _)
+                            are wildcards. Runs until interrupted.
 
   Advanced modes:
     --contract              Instead of account address, score the contract
@@ -134,6 +137,7 @@ usage: ./profanity2 [OPTIONS]
     ./profanity2 --leading f -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --matching dead -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --matching badXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXbad -z HEX_PUBLIC_KEY_128_CHARS_LONG
+    ./profanity2 --exact 1337________________________________c0de -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --leading-range -m 0 -M 1 -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --leading-range -m 10 -M 12 -z HEX_PUBLIC_KEY_128_CHARS_LONG
     ./profanity2 --range -m 0 -M 1 -z HEX_PUBLIC_KEY_128_CHARS_LONG
@@ -226,6 +230,30 @@ matches anything. The score is the number of matched fixed positions.
 Note: only results improving the best score so far are printed, so after a result matching
 all fixed positions is found nothing better can appear — stop the program with `Ctrl-C`.
 Keep in mind that every additional fixed character multiplies the expected search time by 16.
+
+### All exact matches (`-e`, `--exact`)
+
+`--exact` takes the same mask format as `--matching` (up to 40 characters, non-hex characters
+are wildcards) but skips the scoring system entirely: it prints **every** address that matches
+all fixed positions of the mask and keeps running until stopped with `Ctrl-C`. Use it when you
+want to collect several candidate addresses in one run instead of restarting `--matching` for
+each one:
+
+```bash
+# Every address 0x1337...c0de found, not just the first one
+./profanity2.x64 --exact 1337________________________________c0de -z $PUBLIC_KEY
+
+# Every address with at least five leading zeros
+./profanity2.x64 --exact 00000___________________________________ -z $PUBLIC_KEY
+```
+
+The first matches take longer to appear than with `--matching` (partial matches are not
+reported), and a very short mask can produce more matches per GPU round than the result
+buffer holds — the program prints a warning with the number of dropped matches if that
+happens.
+
+Note: if you have run an older version of profanity2 before, delete the `cache-opencl.*`
+files (or pass `--no-cache`) once so the OpenCL program is rebuilt with the new kernel.
 
 ### Character classes anywhere (`--zeros`, `--letters`, `--numbers`)
 
