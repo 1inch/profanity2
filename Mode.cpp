@@ -42,6 +42,10 @@ Mode Mode::matching(const std::string strHex) {
 	r.name = "matching";
 	r.kernel = "profanity_score_matching";
 
+	if (strHex.size() > 40) {
+		throw std::runtime_error("hex mask must be at most 40 characters, got " + std::to_string(strHex.size()));
+	}
+
 	std::fill( r.data1, r.data1 + sizeof(r.data1), cl_uchar(0) );
 	std::fill( r.data2, r.data2 + sizeof(r.data2), cl_uchar(0) );
 
@@ -63,6 +67,13 @@ Mode Mode::matching(const std::string strHex) {
 		++index;
 	}
 
+	return r;
+}
+
+Mode Mode::exact(const std::string strHex) {
+	Mode r = matching(strHex);
+	r.name = "exact";
+	r.kernel = "profanity_exact_match";
 	return r;
 }
 

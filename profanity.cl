@@ -745,6 +745,37 @@ __kernel void profanity_score_benchmark(__global mp_number * const pInverse, __g
 	profanity_result_update(id, hash, pResult, score, scoreMax);
 }
 
+// Reports every hash that matches the given mask (data1) and pattern (data2)
+// exactly, unlike the scoring kernels which report at most one hash per score.
+//
+// pResult[0].found counts the matches found by this launch; matches are
+// appended at pResult[1..PROFANITY_MAX_SCORE] in arrival order. The host reads
+// the buffer and resets the counter to zero before every launch, so the bounds
+// check below also guarantees that no two work items ever write the same slot.
+// Matches beyond the buffer capacity are counted but not stored; the host
+// reports how many were dropped.
+__kernel void profanity_exact_match(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
+	const size_t id = get_global_id(0);
+	__global const uchar * const hash = (__global const uchar *)&pInverse[id].d[0];
+
+	for (int i = 0; i < 20; ++i) {
+		// Wildcard positions have zero mask bits in data1 and zero bits in
+		// data2, so they compare equal for any hash byte.
+		if ((hash[i] & data1[i]) != data2[i]) {
+			return;
+		}
+	}
+
+	const uint matchIndex = atomic_inc(&pResult[0].found);
+	if (matchIndex < PROFANITY_MAX_SCORE) {
+		pResult[matchIndex + 1].foundId = id;
+
+		for (int i = 0; i < 20; ++i) {
+			pResult[matchIndex + 1].foundHash[i] = hash[i];
+		}
+	}
+}
+
 __kernel void profanity_score_matching(__global mp_number * const pInverse, __global result * const pResult, __constant const uchar * const data1, __constant const uchar * const data2, const uchar scoreMax) {
 	const size_t id = get_global_id(0);
 	__global const uchar * const hash = (__global const uchar *)&pInverse[id].d[0];

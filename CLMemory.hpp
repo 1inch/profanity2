@@ -51,6 +51,17 @@ template<typename T> class CLMemory {
 			}
 		}
 
+		// Writes a region of the device buffer from an external host pointer
+		// instead of the internal one. For a non-blocking write the source
+		// must stay valid until the command has executed.
+		void writeRegion(const bool bBlock, const size_t offset, const size_t size, const void * const pSource) const {
+			const cl_bool block = bBlock ? CL_TRUE : CL_FALSE;
+			auto res = clEnqueueWriteBuffer(m_clQueue, m_clMem, block, offset, size, pSource, 0, NULL, NULL);
+			if( res != CL_SUCCESS ) {
+				throw std::runtime_error("clEnqueueWriteBuffer failed - " + toString(res));
+			}
+		}
+
 		T * const & data() const {
 			return m_pData;
 		}
