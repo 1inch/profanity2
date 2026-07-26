@@ -631,7 +631,7 @@ __kernel void profanity_inverse(__global const mp_number * const pDeltaX, __glob
 // After the above point addition this calculates the public address
 // corresponding to the point and returns it in private memory, where the
 // scoring below grades it without a round trip through global memory.
-inline void profanity_iterate(__global mp_number * const pDeltaX, __global mp_number * const pInverse, __global mp_number * const pPrevLambda, const size_t id, const uchar bContract, uchar * const hash) {
+inline void profanity_iterate(__global mp_number * const pDeltaX, __global mp_number * const pInverse, __global mp_number * const pPrevLambda, const size_t id, const uchar bContract, uint * const address) {
 	// negativeGx = 0x8641998106234453aa5f9d6a3178f4f8fd640324d231d726a60d7ea3e907e497
 	mp_number negativeGx = { {0xe907e497, 0xa60d7ea3, 0xd231d726, 0xfd640324, 0x3178f4f8, 0xaa5f9d6a, 0x06234453, 0x86419981 } };
 
@@ -684,7 +684,11 @@ inline void profanity_iterate(__global mp_number * const pDeltaX, __global mp_nu
 	sha3_keccakf(&h);
 
 	// The address is the low 20 bytes of the hash, words 3 through 7.
-	uint address[5] = { h.d[3], h.d[4], h.d[5], h.d[6], h.d[7] };
+	address[0] = h.d[3];
+	address[1] = h.d[4];
+	address[2] = h.d[5];
+	address[3] = h.d[6];
+	address[4] = h.d[7];
 
 	if (bContract) {
 		__private const uchar * const sender = (__private const uchar *)address;
@@ -707,14 +711,13 @@ inline void profanity_iterate(__global mp_number * const pDeltaX, __global mp_nu
 		address[3] = c.d[6];
 		address[4] = c.d[7];
 	}
-
-	__private const uchar * const bytes = (__private const uchar *)address;
-	for (int i = 0; i < 20; ++i) {
-		hash[i] = bytes[i];
-	}
 }
 
-void profanity_result_update(const size_t id, const uchar * const hash, __global result * const pResult, const uchar score, const uchar scoreMax) {
+inline uchar profanity_byte(const uint * const address, const int i) {
+	return (uchar)(address[i >> 2] >> ((i & 3) << 3));
+}
+
+void profanity_result_update(const size_t id, const uint * const address, __global result * const pResult, const uchar score, const uchar scoreMax) {
 	if (score && score > scoreMax) {
 		uchar hasResult = atomic_inc(&pResult[score].found); // NOTE: If "too many" results are found it'll wrap around to 0 again and overwrite last result. Only relevant if global worksize exceeds MAX(uint).
 
@@ -723,13 +726,13 @@ void profanity_result_update(const size_t id, const uchar * const hash, __global
 			pResult[score].foundId = id;
 
 			for (int i = 0; i < 20; ++i) {
-				pResult[score].foundHash[i] = hash[i];
+				pResult[score].foundHash[i] = profanity_byte(address, i);
 			}
 		}
 	}
 }
 
-inline int profanity_score_fn_benchmark(const uchar * const hash, __constant const uchar * const data1, __constant const uchar * const data2) {
+inline int profanity_score_fn_benchmark(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	return 0;
 }
 
@@ -755,13 +758,16 @@ __kernel void profanity_iterate_exact_match(
 		const uchar scoreMax,
 		const uchar bContract) {
 	const size_t id = get_global_id(0);
-	uchar hash[20];
-	profanity_iterate(pDeltaX, pInverse, pPrevLambda, id, bContract, hash);
+	uint address[5];
+	profanity_iterate(pDeltaX, pInverse, pPrevLambda, id, bContract, address);
 
-	for (int i = 0; i < 20; ++i) {
+	__constant const uint * const mask = (__constant const uint *)data1;
+	__constant const uint * const want = (__constant const uint *)data2;
+
+	for (int i = 0; i < 5; ++i) {
 		// Wildcard positions have zero mask bits in data1 and zero bits in
 		// data2, so they compare equal for any hash byte.
-		if ((hash[i] & data1[i]) != data2[i]) {
+		if ((address[i] & mask[i]) != want[i]) {
 			return;
 		}
 	}
@@ -771,16 +777,16 @@ __kernel void profanity_iterate_exact_match(
 		pResult[matchIndex + 1].foundId = id;
 
 		for (int i = 0; i < 20; ++i) {
-			pResult[matchIndex + 1].foundHash[i] = hash[i];
+			pResult[matchIndex + 1].foundHash[i] = profanity_byte(address, i);
 		}
 	}
 }
 
-inline int profanity_score_fn_matching(const uchar * const hash, __constant const uchar * const data1, __constant const uchar * const data2) {
+inline int profanity_score_fn_matching(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
-		if (data1[i] > 0 && (hash[i] & data1[i]) == data2[i]) {
+		if (data1[i] > 0 && (profanity_byte(address, i) & data1[i]) == data2[i]) {
 			++score;
 		}
 	}
@@ -788,18 +794,20 @@ inline int profanity_score_fn_matching(const uchar * const hash, __constant cons
 	return score;
 }
 
-inline int profanity_score_fn_leading(const uchar * const hash, __constant const uchar * const data1, __constant const uchar * const data2) {
+inline int profanity_score_fn_leading(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
-		if ((hash[i] & 0xF0) >> 4 == data1[0]) {
+		const uchar byte = profanity_byte(address, i);
+
+		if ((byte & 0xF0) >> 4 == data1[0]) {
 			++score;
 		}
 		else {
 			break;
 		}
 
-		if ((hash[i] & 0x0F) == data1[0]) {
+		if ((byte & 0x0F) == data1[0]) {
 			++score;
 		}
 		else {
@@ -810,12 +818,13 @@ inline int profanity_score_fn_leading(const uchar * const hash, __constant const
 	return score;
 }
 
-inline int profanity_score_fn_range(const uchar * const hash, __constant const uchar * const data1, __constant const uchar * const data2) {
+inline int profanity_score_fn_range(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
-		const uchar first = (hash[i] & 0xF0) >> 4;
-		const uchar second = (hash[i] & 0x0F);
+		const uchar byte = profanity_byte(address, i);
+		const uchar first = (byte & 0xF0) >> 4;
+		const uchar second = (byte & 0x0F);
 
 		if (first >= data1[0] && first <= data2[0]) {
 			++score;
@@ -829,11 +838,11 @@ inline int profanity_score_fn_range(const uchar * const hash, __constant const u
 	return score;
 }
 
-inline int profanity_score_fn_zerobytes(const uchar * const hash, __constant const uchar * const data1, __constant const uchar * const data2) {
+inline int profanity_score_fn_zerobytes(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
-		if (hash[i] == 0) {
+		if (profanity_byte(address, i) == 0) {
 			score++;
 		}
 	}
@@ -841,12 +850,13 @@ inline int profanity_score_fn_zerobytes(const uchar * const hash, __constant con
 	return score;
 }
 
-inline int profanity_score_fn_leadingrange(const uchar * const hash, __constant const uchar * const data1, __constant const uchar * const data2) {
+inline int profanity_score_fn_leadingrange(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
-		const uchar first = (hash[i] & 0xF0) >> 4;
-		const uchar second = (hash[i] & 0x0F);
+		const uchar byte = profanity_byte(address, i);
+		const uchar first = (byte & 0xF0) >> 4;
+		const uchar second = (byte & 0x0F);
 
 		if (first >= data1[0] && first <= data2[0]) {
 			++score;
@@ -866,15 +876,18 @@ inline int profanity_score_fn_leadingrange(const uchar * const hash, __constant 
 	return score;
 }
 
-inline int profanity_score_fn_mirror(const uchar * const hash, __constant const uchar * const data1, __constant const uchar * const data2) {
+inline int profanity_score_fn_mirror(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 10; ++i) {
-		const uchar leftLeft = (hash[9 - i] & 0xF0) >> 4;
-		const uchar leftRight = (hash[9 - i] & 0x0F);
+		const uchar left = profanity_byte(address, 9 - i);
+		const uchar right = profanity_byte(address, 10 + i);
 
-		const uchar rightLeft = (hash[10 + i] & 0xF0) >> 4;
-		const uchar rightRight = (hash[10 + i] & 0x0F);
+		const uchar leftLeft = (left & 0xF0) >> 4;
+		const uchar leftRight = (left & 0x0F);
+
+		const uchar rightLeft = (right & 0xF0) >> 4;
+		const uchar rightRight = (right & 0x0F);
 
 		if (leftRight != rightLeft) {
 			break;
@@ -892,11 +905,13 @@ inline int profanity_score_fn_mirror(const uchar * const hash, __constant const 
 	return score;
 }
 
-inline int profanity_score_fn_doubles(const uchar * const hash, __constant const uchar * const data1, __constant const uchar * const data2) {
+inline int profanity_score_fn_doubles(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
-		if ((hash[i] == 0x00) || (hash[i] == 0x11) || (hash[i] == 0x22) || (hash[i] == 0x33) || (hash[i] == 0x44) || (hash[i] == 0x55) || (hash[i] == 0x66) || (hash[i] == 0x77) || (hash[i] == 0x88) || (hash[i] == 0x99) || (hash[i] == 0xAA) || (hash[i] == 0xBB) || (hash[i] == 0xCC) || (hash[i] == 0xDD) || (hash[i] == 0xEE) || (hash[i] == 0xFF)) {
+		const uchar byte = profanity_byte(address, i);
+
+		if ((((byte >> 4) ^ byte) & 0x0f) == 0) {
 			++score;
 		}
 		else {
@@ -921,10 +936,10 @@ __kernel void profanity_iterate_score_##NAME( \
 		const uchar scoreMax, \
 		const uchar bContract) { \
 	const size_t id = get_global_id(0); \
-	uchar hash[20]; \
-	profanity_iterate(pDeltaX, pInverse, pPrevLambda, id, bContract, hash); \
-	const int score = profanity_score_fn_##NAME(hash, data1, data2); \
-	profanity_result_update(id, hash, pResult, score, scoreMax); \
+	uint address[5]; \
+	profanity_iterate(pDeltaX, pInverse, pPrevLambda, id, bContract, address); \
+	const int score = profanity_score_fn_##NAME(address, data1, data2); \
+	profanity_result_update(id, address, pResult, score, scoreMax); \
 }
 
 PROFANITY_SCORE_KERNEL(benchmark)
