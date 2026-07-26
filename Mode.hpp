@@ -39,8 +39,6 @@ class Mode {
 		std::string kernel;
 
 		HashTarget target;
-		// kernel transform fn name
-		std::string transformKernel() const;
 		// Address, Contract, ...
 		std::string transformName() const;
 

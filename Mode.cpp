@@ -8,7 +8,7 @@ Mode::Mode() : score(0) {
 Mode Mode::benchmark() {
 	Mode r;
 	r.name = "benchmark";
-	r.kernel = "profanity_score_benchmark";
+	r.kernel = "profanity_iterate_score_benchmark";
 	return r;
 }
 
@@ -40,7 +40,7 @@ static std::string::size_type hexValue(char c) {
 Mode Mode::matching(const std::string strHex) {
 	Mode r;
 	r.name = "matching";
-	r.kernel = "profanity_score_matching";
+	r.kernel = "profanity_iterate_score_matching";
 
 	if (strHex.size() > 40) {
 		throw std::runtime_error("hex mask must be at most 40 characters, got " + std::to_string(strHex.size()));
@@ -73,7 +73,7 @@ Mode Mode::matching(const std::string strHex) {
 Mode Mode::exact(const std::string strHex) {
 	Mode r = matching(strHex);
 	r.name = "exact";
-	r.kernel = "profanity_exact_match";
+	r.kernel = "profanity_iterate_exact_match";
 	return r;
 }
 
@@ -81,7 +81,7 @@ Mode Mode::leading(const char charLeading) {
 
 	Mode r;
 	r.name = "leading";
-	r.kernel = "profanity_score_leading";
+	r.kernel = "profanity_iterate_score_leading";
 	r.data1[0] = static_cast<cl_uchar>(hexValue(charLeading));
 	return r;
 }
@@ -89,7 +89,7 @@ Mode Mode::leading(const char charLeading) {
 Mode Mode::range(const cl_uchar min, const cl_uchar max) {
 	Mode r;
 	r.name = "range";
-	r.kernel = "profanity_score_range";
+	r.kernel = "profanity_iterate_score_range";
 	r.data1[0] = min;
 	r.data2[0] = max;
 	return r;
@@ -98,7 +98,7 @@ Mode Mode::range(const cl_uchar min, const cl_uchar max) {
 Mode Mode::zeroBytes() {
 	Mode r;
 	r.name = "zeroBytes";
-	r.kernel = "profanity_score_zerobytes";
+	r.kernel = "profanity_iterate_score_zerobytes";
 	return r;
 }
 
@@ -112,17 +112,6 @@ Mode Mode::numbers() {
 	Mode r = range(0, 9);
 	r.name = "numbers";
 	return r;
-}
-
-std::string Mode::transformKernel() const {
-	switch (this->target) {
-		case ADDRESS:
-			return "";
-		case CONTRACT:
-			return "profanity_transform_contract";
-		default:
-			throw "No kernel for target";
-	}
 }
 
 std::string Mode::transformName() const {
@@ -139,7 +128,7 @@ std::string Mode::transformName() const {
 Mode Mode::leadingRange(const cl_uchar min, const cl_uchar max) {
 	Mode r;
 	r.name = "leadingrange";
-	r.kernel = "profanity_score_leadingrange";
+	r.kernel = "profanity_iterate_score_leadingrange";
 	r.data1[0] = min;
 	r.data2[0] = max;
 	return r;
@@ -148,13 +137,13 @@ Mode Mode::leadingRange(const cl_uchar min, const cl_uchar max) {
 Mode Mode::mirror() {
 	Mode r;
 	r.name = "mirror";
-	r.kernel = "profanity_score_mirror";
+	r.kernel = "profanity_iterate_score_mirror";
 	return r;
 }
 
 Mode Mode::doubles() {
 	Mode r;
 	r.name = "doubles";
-	r.kernel = "profanity_score_doubles";
+	r.kernel = "profanity_iterate_score_doubles";
 	return r;
 }
