@@ -141,7 +141,8 @@ cl_command_queue Dispatcher::Device::createQueue(cl_context & clContext, cl_devi
 #endif
 
 #ifdef CL_VERSION_2_0
-	const cl_command_queue ret = clCreateCommandQueueWithProperties(clContext, clDeviceId, &p, NULL);
+	const cl_queue_properties props[] = { CL_QUEUE_PROPERTIES, p, 0 };
+	const cl_command_queue ret = clCreateCommandQueueWithProperties(clContext, clDeviceId, p ? props : NULL, NULL);
 #else
 	const cl_command_queue ret = clCreateCommandQueue(clContext, clDeviceId, p, NULL);
 #endif
