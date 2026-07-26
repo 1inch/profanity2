@@ -14,7 +14,7 @@
 
 typedef cl_uint mp_word;
 
-typedef struct {
+typedef struct alignas(16) {
 	mp_word d[MP_NWORDS];
 } mp_number;
 
