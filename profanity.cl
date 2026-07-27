@@ -732,8 +732,16 @@ void profanity_result_update(const size_t id, const uint * const address, __glob
 	}
 }
 
+// Prevent the compiler from deleting the keccak behind profanity_iterate
+// Scores 1 for address(0), which is unreachable, and 0 on everything else
 inline int profanity_score_fn_benchmark(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
-	return 0;
+	uint sum = 0;
+
+	for (int i = 0; i < 5; ++i) {
+		sum |= address[i];
+	}
+
+	return sum == 0;
 }
 
 // Reports every hash that matches the given mask (data1) and pattern (data2)
