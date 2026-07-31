@@ -635,7 +635,7 @@ static inline uchar profanity_byte(const uint * const address, const int i) {
 // After the above point addition this calculates the public address
 // corresponding to the point and returns it in private memory, where the
 // scoring below grades it without a round trip through global memory.
-static inline void profanity_iterate(__global mp_number * const pDeltaX, __global mp_number * const pInverse, __global mp_number * const pPrevLambda, const size_t id, const uchar bContract, uint * const address) {
+static inline void profanity_iterate(__global mp_number * const pDeltaX, __global const mp_number * const pInverse, __global mp_number * const pPrevLambda, const size_t id, const uchar bContract, uint * const address) {
 	// negativeGx = 0x8641998106234453aa5f9d6a3178f4f8fd640324d231d726a60d7ea3e907e497
 	mp_number negativeGx = { {0xe907e497, 0xa60d7ea3, 0xd231d726, 0xfd640324, 0x3178f4f8, 0xaa5f9d6a, 0x06234453, 0x86419981 } };
 
@@ -757,7 +757,7 @@ static inline int profanity_score_fn_benchmark(const uint * const address, __con
 // reports how many were dropped.
 __kernel void profanity_iterate_exact_match(
 		__global mp_number * const pDeltaX,
-		__global mp_number * const pInverse,
+		__global const mp_number * const pInverse,
 		__global mp_number * const pPrevLambda,
 		__global result * const pResult,
 		__constant const uchar * const data1,
@@ -935,7 +935,7 @@ static inline int profanity_score_fn_doubles(const uint * const address, __const
 #define PROFANITY_SCORE_KERNEL(NAME) \
 __kernel void profanity_iterate_score_##NAME( \
 		__global mp_number * const pDeltaX, \
-		__global mp_number * const pInverse, \
+		__global const mp_number * const pInverse, \
 		__global mp_number * const pPrevLambda, \
 		__global result * const pResult, \
 		__constant const uchar * const data1, \
