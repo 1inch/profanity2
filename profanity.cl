@@ -558,6 +558,10 @@ __kernel void profanity_inverse(__global const mp_number * const pDeltaX, __glob
 	pInverse[id] = copy1;
 }
 
+static inline uchar profanity_byte(const uint * const address, const int i) {
+	return (uchar)(address[i >> 2] >> ((i & 3) << 3));
+}
+
 // This kernel performs en elliptical curve point addition. See:
 // https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication#Point_addition
 // I've made one mathematical optimization by never calculating x_r,
@@ -691,14 +695,13 @@ static inline void profanity_iterate(__global mp_number * const pDeltaX, __globa
 	address[4] = h.d[7];
 
 	if (bContract) {
-		__private const uchar * const sender = (__private const uchar *)address;
 		ethhash c = { { 0 } };
 
 		// set up keccak(0xd6, 0x94, address, 0x80)
 		c.b[0] = 0xd6;
 		c.b[1] = 0x94;
 		for (int i = 0; i < 20; ++i) {
-			c.b[i + 2] = sender[i];
+			c.b[i + 2] = profanity_byte(address, i);
 		}
 		c.b[22] = 0x80;
 
@@ -711,10 +714,6 @@ static inline void profanity_iterate(__global mp_number * const pDeltaX, __globa
 		address[3] = c.d[6];
 		address[4] = c.d[7];
 	}
-}
-
-static inline uchar profanity_byte(const uint * const address, const int i) {
-	return (uchar)(address[i >> 2] >> ((i & 3) << 3));
 }
 
 void profanity_result_update(const size_t id, const uint * const address, __global result * const pResult, const uchar score, const uchar scoreMax) {
