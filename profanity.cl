@@ -631,7 +631,7 @@ __kernel void profanity_inverse(__global const mp_number * const pDeltaX, __glob
 // After the above point addition this calculates the public address
 // corresponding to the point and returns it in private memory, where the
 // scoring below grades it without a round trip through global memory.
-inline void profanity_iterate(__global mp_number * const pDeltaX, __global mp_number * const pInverse, __global mp_number * const pPrevLambda, const size_t id, const uchar bContract, uint * const address) {
+static inline void profanity_iterate(__global mp_number * const pDeltaX, __global mp_number * const pInverse, __global mp_number * const pPrevLambda, const size_t id, const uchar bContract, uint * const address) {
 	// negativeGx = 0x8641998106234453aa5f9d6a3178f4f8fd640324d231d726a60d7ea3e907e497
 	mp_number negativeGx = { {0xe907e497, 0xa60d7ea3, 0xd231d726, 0xfd640324, 0x3178f4f8, 0xaa5f9d6a, 0x06234453, 0x86419981 } };
 
@@ -713,7 +713,7 @@ inline void profanity_iterate(__global mp_number * const pDeltaX, __global mp_nu
 	}
 }
 
-inline uchar profanity_byte(const uint * const address, const int i) {
+static inline uchar profanity_byte(const uint * const address, const int i) {
 	return (uchar)(address[i >> 2] >> ((i & 3) << 3));
 }
 
@@ -734,7 +734,7 @@ void profanity_result_update(const size_t id, const uint * const address, __glob
 
 // Prevent the compiler from deleting the keccak behind profanity_iterate
 // Scores 1 for address(0), which is unreachable, and 0 on everything else
-inline int profanity_score_fn_benchmark(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
+static inline int profanity_score_fn_benchmark(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	uint sum = 0;
 
 	for (int i = 0; i < 5; ++i) {
@@ -790,7 +790,7 @@ __kernel void profanity_iterate_exact_match(
 	}
 }
 
-inline int profanity_score_fn_matching(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
+static inline int profanity_score_fn_matching(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
@@ -802,7 +802,7 @@ inline int profanity_score_fn_matching(const uint * const address, __constant co
 	return score;
 }
 
-inline int profanity_score_fn_leading(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
+static inline int profanity_score_fn_leading(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
@@ -826,7 +826,7 @@ inline int profanity_score_fn_leading(const uint * const address, __constant con
 	return score;
 }
 
-inline int profanity_score_fn_range(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
+static inline int profanity_score_fn_range(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
@@ -846,7 +846,7 @@ inline int profanity_score_fn_range(const uint * const address, __constant const
 	return score;
 }
 
-inline int profanity_score_fn_zerobytes(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
+static inline int profanity_score_fn_zerobytes(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
@@ -858,7 +858,7 @@ inline int profanity_score_fn_zerobytes(const uint * const address, __constant c
 	return score;
 }
 
-inline int profanity_score_fn_leadingrange(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
+static inline int profanity_score_fn_leadingrange(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
@@ -884,7 +884,7 @@ inline int profanity_score_fn_leadingrange(const uint * const address, __constan
 	return score;
 }
 
-inline int profanity_score_fn_mirror(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
+static inline int profanity_score_fn_mirror(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 10; ++i) {
@@ -913,7 +913,7 @@ inline int profanity_score_fn_mirror(const uint * const address, __constant cons
 	return score;
 }
 
-inline int profanity_score_fn_doubles(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
+static inline int profanity_score_fn_doubles(const uint * const address, __constant const uchar * const data1, __constant const uchar * const data2) {
 	int score = 0;
 
 	for (int i = 0; i < 20; ++i) {
