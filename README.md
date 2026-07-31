@@ -323,16 +323,17 @@ zeroth transaction** of the found account instead of the account address itself:
 ```
 
 ### Benchmarks - Current version
-|Model|Clock Speed|Memory Speed|Modified straps|Speed|Time to match eight characters
-|:-:|:-:|:-:|:-:|:-:|:-:|
-|GTX 1070 OC|1950|4450|NO|179.0 MH/s| ~24s
-|GTX 1070|1750|4000|NO|163.0 MH/s| ~26s
-|RX 480|1328|2000|YES|120.0 MH/s| ~36s
-|RTX 4090|-|-|-|1096 MH/s| ~3s
-|Apple Silicon M1<br/>(8-core GPU)|-|-|-|45.0 MH/s| ~97s
-|Apple Silicon M1 Max<br/>(32-core GPU)|-|-|-|172.0 MH/s| ~25s
-|Apple Silicon M3 Pro<br/>(18-core GPU)|-|-|-|97 MH/s| ~45s
-|Apple Silicon M4 Max<br/>(40-core GPU)|-|-|-|350 MH/s| ~12s
+|Model|Clock Speed|Memory Speed|Speed|Time to match eight characters
+|:-:|:-:|:-:|:-:|:-:|
+|GTX 1070|1750|4000|225 MH/s| ~19s
+|RTX 4090|2550|10500|1361 MH/s| ~3s
+|RX 480|1328|4000|120 MH/s| ~36s
+|RX 7900 XTX|2500|10000|592 MH/s| ~7s
+|Apple Silicon M1<br/>(8-core GPU)|1278|4266|60 MH/s| ~72s
+|Apple Silicon M1 Max<br/>(32-core GPU)|1296|6400|229 MH/s| ~19s
+|Apple Silicon M2<br/>(10-core GPU)|1398|6400|75 MH/s| ~57s
+|Apple Silicon M3 Pro<br/>(18-core GPU)|1398|6400|129 MH/s| ~33s
+|Apple Silicon M4 Max<br/>(40-core GPU)|1800|8533|467 MH/s| ~9s
 
 # License
 
