@@ -12,6 +12,8 @@ This project "profanity2" was forked from the original project and modified to g
 
 Project "profanity2" is not generating key anymore, instead it adjusts user-provided public key until desired vanity address will be discovered. Users provide seed public key in form of 128-symbol hex string with `-z` parameter flag. Resulting private key should be used to be added to seed private key to achieve final private key of the desired vanity address (private keys are just 256-bit numbers). Running "profanity2" can even be outsourced to someone completely unreliable - it is still safe by design.
 
+Note: when upgrading to a new version of profanity2, delete the `cache-opencl.*` files (or pass `--no-cache`) once so the OpenCL program is rebuilt with the new kernel.
+
 ## Getting public key for mandatory `-z` parameter
 
 Generate private key and public key via openssl in terminal (remove prefix "04" from public key):
@@ -251,9 +253,6 @@ The first matches take longer to appear than with `--matching` (partial matches 
 reported), and a very short mask can produce more matches per GPU round than the result
 buffer holds — the program prints a warning with the number of dropped matches if that
 happens.
-
-Note: if you have run an older version of profanity2 before, delete the `cache-opencl.*`
-files (or pass `--no-cache`) once so the OpenCL program is rebuilt with the new kernel.
 
 ### Character classes anywhere (`--zeros`, `--letters`, `--numbers`)
 
