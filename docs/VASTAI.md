@@ -131,20 +131,61 @@ docker run --rm --gpus all -v profanity2-cache:/opt/profanity2 \
 
 ## Building your own image
 
-If you have local changes, or would rather not depend on a registry someone else controls, building your own takes about a minute:
+Build your own if you have local changes, if you want a revision that is not published yet, or if you would rather not depend on a registry someone else controls. A rented machine can only pull from a registry, so the image has to be pushed somewhere first - GHCR if you are going to use it more than once, ttl.sh for a single throwaway run.
 
 ```bash
 git clone https://github.com/1inch/profanity2
 cd profanity2
-docker build -t YOUR_DOCKERHUB_USER/profanity2 .
-docker push YOUR_DOCKERHUB_USER/profanity2
+docker build --platform linux/amd64 -t profanity2 .
 ```
 
-Then use `YOUR_DOCKERHUB_USER/profanity2` as the image path in the vast.ai template. Private repositories work too, vast.ai has a field for the `docker login` credentials in the template.
+`--platform linux/amd64` is not optional. The Linux branch of the Makefile passes `-mmmx` and `-mcmodel=large`, which do not exist on arm64, so a native build on an Apple Silicon Mac fails with `unrecognized command-line option '-mmmx'`. Rented GPU machines are x86_64 anyway. Under emulation the build takes a few minutes rather than the half minute it needs on an x86 host.
+
+### GitHub Container Registry
+
+The image stays until you delete it and the name is readable, which is what you want if you are going to rent machines more than once. Create a personal access token with the `write:packages` scope, then:
+
+```bash
+echo YOUR_TOKEN | docker login ghcr.io -u YOUR_USER --password-stdin
+docker tag profanity2 ghcr.io/YOUR_USER/profanity2:latest
+docker push ghcr.io/YOUR_USER/profanity2:latest
+```
+
+A package pushed to GHCR is **private by default**, so a rented machine cannot pull it yet. Either make it public once, under Packages on your GitHub profile, or hand the credentials to vast.ai:
+
+```bash
+# public package
+vastai create instance <OFFER_ID> --image ghcr.io/YOUR_USER/profanity2:latest \
+    --disk 12 --args --matching dead -z YOUR_128_HEX_PUBLIC_KEY
+
+# private package
+vastai create instance <OFFER_ID> --image ghcr.io/YOUR_USER/profanity2:latest \
+    --login '-u YOUR_USER -p YOUR_TOKEN ghcr.io' \
+    --disk 12 --args --matching dead -z YOUR_128_HEX_PUBLIC_KEY
+```
+
+In the GUI the same credentials go into the *Docker login* field of the template, next to the image path.
+
+### ttl.sh
+
+[ttl.sh](https://ttl.sh) is an anonymous registry that deletes what you push after the time given in the tag. No account, no login, no cleanup - convenient for a one-off search:
+
+```bash
+IMAGE=ttl.sh/profanity2-$(uuidgen | tr '[:upper:]' '[:lower:]'):24h
+docker build --platform linux/amd64 -t "$IMAGE" .
+docker push "$IMAGE"
+echo "$IMAGE"
+```
+
+The tag is the lifetime and 24 hours is the maximum, so the image needs a unique name instead - hence the UUID. Anyone who learns that name can pull the image, which is harmless here: it holds nothing but public source code and no key of yours. Do keep the lifetime longer than the search, because an instance that gets recreated or moved after the image expired will fail to start.
+
+Whichever registry you use, its full name goes into the *Image Path:Tag* field of the template, or into `--image` on the command line.
 
 ## Troubleshooting
 
 **`error: no OpenCL platform found inside the container`** — the container has no usable GPU driver. Run `clinfo` in the same image (`Arguments: clinfo`) to see what the ICD loader finds. On a self-hosted machine, check that the container was started with `--gpus all` and that the NVIDIA Container Toolkit is installed. On vast.ai, verify that the offer really has an NVIDIA GPU; if it does and the error persists, the host driver is broken — destroy the instance and rent another one, you should not pay for it.
+
+**The instance stays in `loading` and never runs** — the image could not be pulled. A package you pushed to GHCR is private until you say otherwise, and a ttl.sh image is gone once the lifetime in its tag has passed. Check `status_msg` in `vastai show instance <id> --raw`.
 
 **The instance shows as exited immediately** — read the log. Without arguments the entrypoint prints the help text and exits, and profanity2 itself refuses to start when `-z` is missing or is not exactly 128 hex characters (the `04` prefix of the public key must be removed). If the same startup banner appears several times over, the platform is restarting the failing container in a loop and billing you for it — destroy the instance.
 
