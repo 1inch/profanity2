@@ -137,7 +137,7 @@ cl_command_queue Dispatcher::Device::createQueue(cl_context & clContext, cl_devi
 #ifdef PROFANITY_DEBUG
 	cl_command_queue_properties p = CL_QUEUE_PROFILING_ENABLE;
 #else
-	cl_command_queue_properties p = NULL;
+	cl_command_queue_properties p = 0;
 #endif
 
 #ifdef CL_VERSION_2_0
