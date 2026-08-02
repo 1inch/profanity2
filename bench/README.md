@@ -89,8 +89,18 @@ on platforms that replace it.
 | `--repeats` | `BENCH_REPEATS` | `2` | how many times each revision runs |
 | `--extra-args` | `BENCH_EXTRA_ARGS` | `-i 255 -I 16384 -w 64` | options given to both revisions |
 | `--mask` | `BENCH_EXACT_MASK` | `deadbee` | mask for `--mode exact`, 4 to 10 fixed hex characters |
-| `--public-key` | `PUBLIC_KEY` | secp256k1 generator | seed public key |
+| `--public-key` | `BENCH_PUBLIC_KEY` | secp256k1 generator | seed public key |
 | | `BENCH_SKIP_GPU_CHECK` | unset | start even when no OpenCL platform is detected |
+
+A plain `PUBLIC_KEY` is honoured as well, but only when it holds 128
+hexadecimal characters. Rental platforms hand out that generic name for their
+own SSH key, and it may already sit in your account-wide environment
+variables, so a value that is not a seed public key is ignored and the run
+falls back to the default. The header of every run says which key it used:
+
+```
+  key:      the secp256k1 generator (PUBLIC_KEY ignored, not 128 hex characters)
+```
 
 With the defaults a full comparison takes about ten minutes plus kernel
 compilation, which is around six cents on an RTX 4090.

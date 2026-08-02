@@ -21,8 +21,8 @@
 #
 # Every option can also be given as an environment variable (BENCH_MODE,
 # BENCH_SECONDS, BENCH_WARMUP, BENCH_REPEATS, BENCH_EXTRA_ARGS,
-# BENCH_EXACT_MASK, PUBLIC_KEY), which is the only way to configure the run on
-# platforms that replace the image entrypoint.
+# BENCH_EXACT_MASK, BENCH_PUBLIC_KEY), which is the only way to configure the
+# run on platforms that replace the image entrypoint.
 #
 # An argument that does not start with a dash is executed instead of the
 # benchmark, e.g. `clinfo` or `bash`.
@@ -46,7 +46,26 @@ WARMUP="${BENCH_WARMUP:-30}"
 REPEATS="${BENCH_REPEATS:-2}"
 EXTRA_ARGS="${BENCH_EXTRA_ARGS:--i 255 -I 16384 -w 64}"
 EXACT_MASK="${BENCH_EXACT_MASK:-deadbee}"
-PUBLIC_KEY="${PUBLIC_KEY:-$GENERATOR_PUBLIC_KEY}"
+
+# PUBLIC_KEY is accepted for convenience but cannot be trusted: rental
+# platforms hand out that name for their own SSH key and it may sit in an
+# account-wide variable, so it is only taken when it looks like a seed public
+# key. Which key won is printed in the header - a benchmark that picks up
+# somebody else's value fails in a way that is hard to read otherwise.
+SEED_KEY="$GENERATOR_PUBLIC_KEY"
+KEY_SOURCE="the secp256k1 generator"
+
+if [ -n "${BENCH_PUBLIC_KEY:-}" ]; then
+	SEED_KEY="$BENCH_PUBLIC_KEY"
+	KEY_SOURCE="BENCH_PUBLIC_KEY"
+elif [ -n "${PUBLIC_KEY:-}" ]; then
+	if printf '%s' "$PUBLIC_KEY" | grep -qE '^[0-9a-fA-F]{128}$'; then
+		SEED_KEY="$PUBLIC_KEY"
+		KEY_SOURCE="PUBLIC_KEY"
+	else
+		KEY_SOURCE="the secp256k1 generator (PUBLIC_KEY ignored, not 128 hex characters)"
+	fi
+fi
 
 log() {
 	printf 'bench: %s\n' "$*" >&2
@@ -76,8 +95,10 @@ alternating A B A B, and reports how their speeds compare.
 
 The same settings can be given as environment variables (BENCH_MODE,
 BENCH_SECONDS, BENCH_WARMUP, BENCH_REPEATS, BENCH_EXTRA_ARGS,
-BENCH_EXACT_MASK, PUBLIC_KEY), which is the only way to configure the run on
-platforms that replace the image entrypoint.
+BENCH_EXACT_MASK, BENCH_PUBLIC_KEY), which is the only way to configure the
+run on platforms that replace the image entrypoint. A plain PUBLIC_KEY is used
+too, but only when it holds 128 hexadecimal characters, because rental
+platforms hand out that name for their own SSH key.
 
 An argument that does not start with a dash is executed instead of the
 benchmark, e.g. `clinfo` or `bash`.
@@ -205,7 +226,7 @@ run_once() {
 	# and caches the compiled kernel there, hence the cd into the revision's
 	# own directory.
 	# shellcheck disable=SC2086
-	( cd "$dir" && exec ./profanity2.x64 "${args[@]}" -z "$PUBLIC_KEY" $EXTRA_ARGS ) \
+	( cd "$dir" && exec ./profanity2.x64 "${args[@]}" -z "$SEED_KEY" $EXTRA_ARGS ) \
 		>"$out" 2>"$err" &
 	local pid=$!
 
@@ -282,8 +303,9 @@ main() {
 	echo "  workload: $describe $EXTRA_ARGS"
 	echo "  window:   ${REPEATS} x ${WINDOW}s per revision, first ${WARMUP}s of each run dropped"
 	echo "  order:    $(for _ in $(seq "$REPEATS"); do printf 'A B '; done)"
-	if [ "$PUBLIC_KEY" = "$GENERATOR_PUBLIC_KEY" ]; then
-		echo "  key:      secp256k1 generator - PUBLIC, never use a result from this run"
+	echo "  key:      $KEY_SOURCE"
+	if [ "$SEED_KEY" = "$GENERATOR_PUBLIC_KEY" ]; then
+		echo "            a key everybody knows - never use a result from this run"
 	fi
 	echo
 
@@ -377,7 +399,11 @@ while [ "$#" -gt 0 ]; do
 		--repeats) REPEATS="${2:?--repeats needs a value}"; shift 2 ;;
 		--extra-args) EXTRA_ARGS="${2:?--extra-args needs a value}"; shift 2 ;;
 		--mask) EXACT_MASK="${2:?--mask needs a value}"; shift 2 ;;
-		--public-key) PUBLIC_KEY="${2:?--public-key needs a value}"; shift 2 ;;
+		--public-key)
+			SEED_KEY="${2:?--public-key needs a value}"
+			KEY_SOURCE="--public-key"
+			shift 2
+			;;
 		-h|--help) usage; exit 0 ;;
 		*) die "unknown option '$1', try --help" ;;
 	esac
