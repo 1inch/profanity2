@@ -106,7 +106,8 @@ env >> /etc/environment
 
 | Variable | Effect |
 |---|---|
-| `PUBLIC_KEY` | Added as `-z` unless the arguments already contain `-z` |
+| `PROFANITY_PUBLIC_KEY` | Added as `-z` unless the arguments already contain `-z` |
+| `PUBLIC_KEY` | The same, but only when it holds 128 hexadecimal characters |
 | `PROFANITY_ARGS` | Arguments to use when none are passed to the container, e.g. `--matching dead` |
 | `PROFANITY_OUTPUT` | File the output is copied to, default `/workspace/profanity2.log`, empty value disables it |
 | `PROFANITY_TIMEOUT` | Stop the search after this long, e.g. `30m`, `6h`. The container then exits with code 124 |
@@ -122,11 +123,17 @@ and this one
 
 ```
 Arguments:      (empty)
-Docker Options: -e PUBLIC_KEY=YOUR_128_HEX_PUBLIC_KEY -e PROFANITY_ARGS="--matching dead"
+Docker Options: -e PROFANITY_PUBLIC_KEY=YOUR_128_HEX_PUBLIC_KEY -e PROFANITY_ARGS="--matching dead"
 ```
 
 do the same thing. All scoring modes of the tool are available, see
 [Usage examples](../README.md#usage-examples) in the README.
+
+`PUBLIC_KEY` works too, but prefer the longer name: rental platforms hand out
+that generic name for their own purposes (it is the SSH public key on RunPod,
+and it may already sit in your vast.ai account-wide environment variables), and
+a value that is not 128 hexadecimal characters is ignored with a warning rather
+than passed on to profanity2.
 
 Note that most modes never finish on their own: `--matching` keeps looking for a
 better score and `--exact` keeps printing matches until it is stopped. Either set
@@ -189,7 +196,16 @@ you should not pay for it.
 **The instance shows as exited immediately** — read the log. Without arguments
 the entrypoint prints the help text and exits, and profanity2 itself refuses to
 start when `-z` is missing or is not exactly 128 hex characters (the `04` prefix
-of the public key must be removed).
+of the public key must be removed). If the same startup banner appears several
+times over, the platform is restarting the failing container in a loop and
+billing you for it — destroy the instance.
+
+**`error: public key must be 128 hexademical characters long` although you
+passed a correct key** — something else in the environment is called
+`PUBLIC_KEY`. Check the account-wide environment variables on your
+[account page](https://cloud.vast.ai/account/), and pass the key as `-z` or in
+`PROFANITY_PUBLIC_KEY` instead. Running the image with `env` as its only
+argument prints the whole environment.
 
 **`Devices:` is printed but the list is empty** — an OpenCL platform exists but
 exposes no GPU device. This is usually a mismatched driver on the host.

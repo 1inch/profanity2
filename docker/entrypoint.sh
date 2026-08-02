@@ -8,7 +8,10 @@
 # (SSH/Jupyter) only offer environment variables, so the same options can be
 # given through PROFANITY_ARGS and PUBLIC_KEY instead.
 #
-#   PUBLIC_KEY            seed public key, added as `-z` unless already given
+#   PROFANITY_PUBLIC_KEY  seed public key, added as `-z` unless already given
+#   PUBLIC_KEY            same, but only when it holds 128 hexadecimal
+#                         characters - GPU rental platforms hand out that name
+#                         for their own SSH key
 #   PROFANITY_ARGS        arguments to use when none are passed on the command
 #                         line, split on whitespace (no shell quoting)
 #   PROFANITY_OUTPUT      file the output is copied to, empty value disables it
@@ -86,7 +89,17 @@ for arg in "${args[@]}"; do
 	esac
 done
 
-public_key="${PUBLIC_KEY:-${PROFANITY_PUBLIC_KEY:-}}"
+public_key="${PROFANITY_PUBLIC_KEY:-}"
+if [ -z "$public_key" ] && [ -n "${PUBLIC_KEY:-}" ]; then
+	if printf '%s' "$PUBLIC_KEY" | grep -qE '^[0-9a-fA-F]{128}$'; then
+		public_key="$PUBLIC_KEY"
+	else
+		log "warning: ignoring PUBLIC_KEY, it does not hold 128 hexadecimal characters"
+		log "         rental platforms set that name to their own SSH key; use"
+		log "         PROFANITY_PUBLIC_KEY, or pass -z, to be unambiguous"
+	fi
+fi
+
 if [ "$has_public_key" -eq 0 ] && [ -n "$public_key" ]; then
 	args+=(-z "$public_key")
 fi
