@@ -37,7 +37,7 @@ here.
    | Disk Space | 12 GB (the image is under 100 MB, this is just the minimum) |
 
    Launch mode matters: in the SSH and Jupyter modes vast.ai replaces the image
-   entrypoint with its own setup script, so the miner would never start. The
+   entrypoint with its own setup script, so the search would never start. The
    ENTRYPOINT mode runs the image as is and appends the *Arguments* field to the
    entrypoint, which is exactly the profanity2 command line.
 
@@ -46,24 +46,25 @@ here.
    table in the [README](../README.md#benchmarks---current-version) — an RTX 4090
    does about 1096 MH/s.
 
-4. Watch the instance log (the terminal icon on the instance card). Every
-   improvement is printed as it is found:
+4. Watch the instance log (the log button on the instance card, or
+   `vastai logs <instance_id>`). Every improvement is printed as it is found:
 
    ```
    Mode: matching
    Target: Address
    Devices:
      GPU0: NVIDIA GeForce RTX 4090, 25757220864 bytes available, 128 compute units (precompiled = no)
-     Time:    31s Score:  4 Private: 0x5b9…c41 Address: 0xdead4b0…
+   ...
+     Time:    31s Score:  4 Private: 0x5b9...c41 Address: 0xdead4b0...
    ```
 
 5. Add the printed private key to your seed private key to get the final key,
    then verify the address by importing it into a wallet.
 
 Everything that reaches stdout is also appended to `/workspace/profanity2.log`
-inside the instance, so a result is not lost when the log view scrolls away. Copy
-it out with `vastai copy <instance_id>:/workspace/profanity2.log .` or read it
-over SSH if the instance has it.
+inside the instance, so a result is not lost when the log view scrolls away.
+Fetch it with `vastai copy C.<instance_id>:/workspace/ local:results/` before
+destroying the instance.
 
 ## The same thing from the CLI
 
@@ -96,7 +97,12 @@ the **last** option, everything after it is passed to the container.
 Options can be given as container arguments (the *Arguments* field) or through
 environment variables (the *Docker Options* field, `-e NAME=value`). Environment
 variables are the only way to configure the run in the SSH and Jupyter launch
-modes, where the on-start script has to call `profanity2-entrypoint` itself.
+modes, where the entrypoint is replaced and the on-start script has to start it:
+
+```bash
+env >> /etc/environment
+/usr/local/bin/profanity2-entrypoint
+```
 
 | Variable | Effect |
 |---|---|
@@ -127,10 +133,10 @@ better score and `--exact` keeps printing matches until it is stopped. Either se
 `PROFANITY_TIMEOUT` or destroy the instance yourself once you have what you
 wanted — a running instance keeps costing money.
 
-Two arguments are handled by the entrypoint instead of profanity2:
+An argument that does not start with a dash is run as a command instead of
+profanity2, which is what you want when an instance misbehaves:
 
 ```bash
-# anything that does not start with a dash runs instead of the miner
 docker run --rm --gpus all ghcr.io/1inch/profanity2:latest clinfo
 docker run --rm --gpus all ghcr.io/1inch/profanity2:latest bash
 ```
@@ -156,8 +162,8 @@ docker run --rm --gpus all -v profanity2-cache:/opt/profanity2 \
 
 ## Building your own image
 
-The published image lags behind `master` and lives in a registry you do not
-control. Building your own takes about a minute:
+If you have local changes, or would rather not depend on a registry someone else
+controls, building your own takes about a minute:
 
 ```bash
 git clone https://github.com/1inch/profanity2
