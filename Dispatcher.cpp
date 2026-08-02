@@ -140,12 +140,14 @@ cl_command_queue Dispatcher::Device::createQueue(cl_context & clContext, cl_devi
 	cl_command_queue_properties p = NULL;
 #endif
 
+	cl_int errorCode = CL_SUCCESS;
 #ifdef CL_VERSION_2_0
 	const cl_queue_properties props[] = { CL_QUEUE_PROPERTIES, p, 0 };
-	const cl_command_queue ret = clCreateCommandQueueWithProperties(clContext, clDeviceId, props, NULL);
+	const cl_command_queue ret = clCreateCommandQueueWithProperties(clContext, clDeviceId, props, &errorCode);
 #else
-	const cl_command_queue ret = clCreateCommandQueue(clContext, clDeviceId, p, NULL);
+	const cl_command_queue ret = clCreateCommandQueue(clContext, clDeviceId, p, &errorCode);
 #endif
+	OpenCLException::throwIfError("failed to create command queue", errorCode);
 	return ret == NULL ? throw std::runtime_error("failed to create command queue") : ret;
 }
 
