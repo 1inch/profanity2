@@ -337,11 +337,12 @@ report() {
 	echo
 	echo "B vs A: ${delta}%"
 
-	if awk -v n="$noise" -v d="$delta" 'BEGIN { exit !(d != "n/a" && n >= (d < 0 ? -d : d)) }' 2>/dev/null; then
+	if awk -v n="$noise" -v d="$delta" \
+		'BEGIN { exit !(d != "n/a" && n > 0 && n >= (d < 0 ? -d : d)) }'; then
 		echo
-		echo "warning: repeats of the same revision disagree by ${noise}%, which is at"
-		echo "         least as large as the difference between the revisions - this"
-		echo "         machine is too noisy, use a longer --seconds or another host"
+		echo "warning: the difference is no larger than the spread between repeats of"
+		echo "         the same revision (${noise}%), so it cannot be told apart from"
+		echo "         noise - use a longer --seconds, more --repeats or another host"
 	fi
 
 	if [ "$MODE" = leading ] && [ "$(cat "$ROOT/timer.state")" = differs ]; then

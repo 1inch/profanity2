@@ -57,7 +57,7 @@ fi
 
 random_name() {
 	if command -v uuidgen >/dev/null 2>&1; then
-		uuidgen | tr 'A-Z' 'a-z'
+		uuidgen | tr '[:upper:]' '[:lower:]'
 	elif command -v python3 >/dev/null 2>&1; then
 		python3 -c 'import uuid; print(uuid.uuid4())'
 	else

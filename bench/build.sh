@@ -58,7 +58,9 @@ while [ "$#" -gt 0 ]; do
 	esac
 done
 
-[ -n "$REF_A" ] && [ -n "$REF_B" ] || die "two revisions are required, try --help"
+if [ -z "$REF_A" ] || [ -z "$REF_B" ]; then
+	die "two revisions are required, try --help"
+fi
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
