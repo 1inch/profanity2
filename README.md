@@ -85,6 +85,19 @@ or against a vendor OpenCL SDK, plus troubleshooting for the most common errors
 (`CL/cl.h: No such file or directory`, `CreateProcess(NULL, uname -s, ...) failed`,
 empty device list, WSL2 limitations).
 
+### Docker and rented GPUs
+
+A prebuilt image with the OpenCL runtime is available, so nothing has to be
+installed on the machine that does the searching:
+
+```bash
+docker run --rm --gpus all ghcr.io/1inch/profanity2:latest --matching dead -z $PUBLIC_KEY
+```
+
+Since the tool only needs your public key, that machine does not have to be
+yours. See [docs/VASTAI.md](docs/VASTAI.md) for renting a GPU on vast.ai and
+running the image there with your own parameters.
+
 # Usage
 ```
 usage: ./profanity2 [OPTIONS]
