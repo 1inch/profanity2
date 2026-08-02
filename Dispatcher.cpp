@@ -544,12 +544,10 @@ void Dispatcher::printSpeed() {
 	if( m_countPrint > m_vDevices.size() ) {
 		std::string strGPUs;
 		double speedTotal = 0;
-		unsigned int i = 0;
 		for (auto & e : m_vDevices) {
 			const auto curSpeed = e->m_speed.getSpeed();
 			speedTotal += curSpeed;
 			strGPUs += " GPU" + toString(e->m_index) + ": " + formatSpeed(curSpeed);
-			++i;
 		}
 
 		const std::string strVT100ClearLine = "\33[2K\r";
