@@ -1,0 +1,24 @@
+profanity2 benchmark
+  A: 9011bcd (9011bcd)
+  B: pr/57 (aad8e13)
+  workload: --leading 0 -i 255 -I 16384 -w 64
+  window:   2 x 120s per revision, first 30s of each run dropped
+  order:    A B A B 
+  key:      secp256k1 generator - PUBLIC, never use a result from this run
+bench: run 1/2, revision A (9011bcd (9011bcd))
+bench: run 1/2, revision A: 303.6 MH/s
+bench: run 1/2, revision B (pr/57 (aad8e13))
+bench: run 1/2, revision B: 329.6 MH/s
+bench: run 2/2, revision A (9011bcd (9011bcd))
+bench: run 2/2, revision A: 302.2 MH/s
+bench: run 2/2, revision B (pr/57 (aad8e13))
+bench: run 2/2, revision B: 329.8 MH/s
+=================== BENCHMARK RESULT ===================
+A  9011bcd (9011bcd)        median 302.9 MH/s   spread 0.5%
+   runs: 303.6 MH/s 302.2 MH/s
+B  pr/57 (aad8e13)          median 329.7 MH/s   spread 0.0%
+   runs: 329.6 MH/s 329.8 MH/s
+B vs A: +8.9%
+========================================================
+BENCH_RESULT mode=leading a_hs=302913250 b_hs=329727250 delta_pct=+8.9
+
