@@ -5,3 +5,4 @@
 cache-opencl.*
 bin
 __pycache__/
+.venv
