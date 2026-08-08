@@ -213,9 +213,28 @@ build_slot b "$REF_B" "$SHA_B" "$SHORT_B"
 
 # Whether the two revisions time a round the same way. If they do not, the
 # speeds they print come from different clocks and the runner warns about it.
-# Both paths are given because revisions from before the source tree was split
-# into src/ and kernels/ keep SpeedSample.cpp in the root of the tree.
-if git -C "$SRC_REPO" diff --quiet "$SHA_A" "$SHA_B" -- SpeedSample.cpp src/SpeedSample.cpp; then
+# The two are compared by content, through the blob each revision records for
+# the file, rather than by path: a revision from before the source tree was
+# reorganized keeps SpeedSample.cpp in the root of the tree, and a file that
+# only moved still times a round exactly the same way.
+timer_blob() {
+	local sha="$1" path blob
+
+	for path in src/SpeedSample.cpp SpeedSample.cpp; do
+		blob="$(git -C "$SRC_REPO" rev-parse --verify --quiet "$sha:$path" 2>/dev/null || true)"
+		if [ -n "$blob" ]; then
+			printf '%s\n' "$blob"
+			return 0
+		fi
+	done
+
+	return 1
+}
+
+TIMER_A="$(timer_blob "$SHA_A" || true)"
+TIMER_B="$(timer_blob "$SHA_B" || true)"
+
+if [ -n "$TIMER_A" ] && [ "$TIMER_A" = "$TIMER_B" ]; then
 	printf 'same\n' > "$WORKDIR/timer.state"
 else
 	printf 'differs\n' > "$WORKDIR/timer.state"
