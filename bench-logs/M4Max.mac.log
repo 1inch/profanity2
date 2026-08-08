@@ -1,0 +1,43 @@
+profanity2 benchmark
+  A: 9011bcd (9011bcd)
+  B: pr57-head (aad8e13)
+  workload: --leading 0 -i 255 -I 16384 -w 64
+  window:   6 x 75s per revision, first 60s of each run dropped
+  order:    A B A B A B A B A B A B 
+  key:      the secp256k1 generator
+            a key everybody knows - never use a result from this run
+bench: run 1/6, revision A (9011bcd (9011bcd))
+bench: run 1/6, revision A: 339.9 MH/s
+bench: run 1/6, revision B (pr57-head (aad8e13))
+bench: run 1/6, revision B: 221.3 MH/s
+bench: run 2/6, revision A (9011bcd (9011bcd))
+bench: run 2/6, revision A: 252.2 MH/s
+bench: run 2/6, revision B (pr57-head (aad8e13))
+bench: run 2/6, revision B: 272.5 MH/s
+bench: run 3/6, revision A (9011bcd (9011bcd))
+bench: run 3/6, revision A: 264.2 MH/s
+bench: run 3/6, revision B (pr57-head (aad8e13))
+bench: run 3/6, revision B: 349.3 MH/s
+bench: run 4/6, revision A (9011bcd (9011bcd))
+bench: run 4/6, revision A: 253.0 MH/s
+bench: run 4/6, revision B (pr57-head (aad8e13))
+bench: run 4/6, revision B: 250.4 MH/s
+bench: run 5/6, revision A (9011bcd (9011bcd))
+bench: run 5/6, revision A: 241.3 MH/s
+bench: run 5/6, revision B (pr57-head (aad8e13))
+bench: run 5/6, revision B: 240.6 MH/s
+bench: run 6/6, revision A (9011bcd (9011bcd))
+bench: run 6/6, revision A: 236.5 MH/s
+bench: run 6/6, revision B (pr57-head (aad8e13))
+bench: run 6/6, revision B: 253.5 MH/s
+=================== BENCHMARK RESULT ===================
+A  9011bcd (9011bcd)        median 252.6 MH/s   spread 43.7%
+   runs: 339.9 MH/s 252.2 MH/s 264.2 MH/s 253.0 MH/s 241.3 MH/s 236.5 MH/s
+B  pr57-head (aad8e13)      median 252.0 MH/s   spread 57.8%
+   runs: 221.3 MH/s 272.5 MH/s 349.3 MH/s 250.4 MH/s 240.6 MH/s 253.5 MH/s
+B vs A: -0.3%
+warning: the difference is no larger than the spread between repeats of
+         the same revision (57.8%), so it cannot be told apart from
+         noise - use a longer --seconds, more --repeats or another host
+========================================================
+BENCH_RESULT mode=leading a_hs=252590750 b_hs=251952750 delta_pct=-0.3
