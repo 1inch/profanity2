@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# Compares the speed of the two profanity2 revisions baked into this image.
+# Compares the speed of two profanity2 revisions laid out side by side, either
+# baked into this image or prepared on the host by bench/prepare-native.sh.
 #
 # The two builds never run at the same time and never share a kernel cache.
 # They take turns - A, B, A, B - so that clock drift or thermal throttling on
@@ -22,14 +23,18 @@
 # Every option can also be given as an environment variable (BENCH_MODE,
 # BENCH_SECONDS, BENCH_WARMUP, BENCH_REPEATS, BENCH_EXTRA_ARGS,
 # BENCH_EXACT_MASK, BENCH_PUBLIC_KEY), which is the only way to configure the
-# run on platforms that replace the image entrypoint.
+# run on platforms that replace the image entrypoint. BENCH_ROOT points at the
+# directory holding the two revisions [default = /opt/bench].
 #
 # An argument that does not start with a dash is executed instead of the
 # benchmark, e.g. `clinfo` or `bash`.
 
 set -euo pipefail
 
-readonly ROOT=/opt/bench
+# The benchmark image lays the two revisions out in /opt/bench. A run on the
+# host machine has no such directory and passes its own in BENCH_ROOT, which is
+# what bench/prepare-native.sh prints.
+readonly ROOT="${BENCH_ROOT:-/opt/bench}"
 
 # Generator point of secp256k1, x and y concatenated without the 04 prefix. It
 # is a valid public key, so profanity2 accepts it, and its private key is the
@@ -80,7 +85,7 @@ usage() {
 	cat <<'EOF'
 usage: bench [OPTIONS]
 
-Runs the two profanity2 revisions baked into this image one after the other,
+Runs the two profanity2 revisions found in BENCH_ROOT one after the other,
 alternating A B A B, and reports how their speeds compare.
 
   --mode leading|exact  what to measure [default = leading]
@@ -99,6 +104,10 @@ BENCH_EXACT_MASK, BENCH_PUBLIC_KEY), which is the only way to configure the
 run on platforms that replace the image entrypoint. A plain PUBLIC_KEY is used
 too, but only when it holds 128 hexadecimal characters, because rental
 platforms hand out that name for their own SSH key.
+
+BENCH_ROOT is the directory holding the two revisions [default = /opt/bench].
+Outside the image, bench/prepare-native.sh builds that directory and prints
+its path.
 
 An argument that does not start with a dash is executed instead of the
 benchmark, e.g. `clinfo` or `bash`.
@@ -130,6 +139,12 @@ count_opencl_platforms() {
 				count="$(clinfo 2>/dev/null | awk '/^Number of platforms/ { print $NF; exit }' || true)"
 				;;
 		esac
+	elif [ "$(uname -s)" = Darwin ]; then
+		# macOS ships OpenCL.framework and no clinfo, so there is no ICD
+		# loader to interrogate and nothing to count. Whether a usable
+		# device exists is left to profanity2's own enumeration, which
+		# prints the device list and is caught by wait_for_first_sample.
+		count=1
 	fi
 
 	case "$count" in
@@ -287,10 +302,16 @@ main() {
 		platforms=1
 	fi
 	if [ "$platforms" -eq 0 ]; then
-		log "no OpenCL platform found inside the container"
-		log "  installed ICDs: $(echo /etc/OpenCL/vendors/*.icd)"
-		log "  start the container with GPU access (docker run --gpus all ...)"
-		log "  or run this image with the argument \"clinfo\" to see what it finds"
+		if [ -n "${BENCH_ROOT:-}" ]; then
+			log "no OpenCL platform found on this machine"
+			log "  install clinfo to see what the ICD loader finds, or set"
+			log "  BENCH_SKIP_GPU_CHECK=1 to run anyway"
+		else
+			log "no OpenCL platform found inside the container"
+			log "  installed ICDs: $(echo /etc/OpenCL/vendors/*.icd)"
+			log "  start the container with GPU access (docker run --gpus all ...)"
+			log "  or run this image with the argument \"clinfo\" to see what it finds"
+		fi
 		exit 1
 	fi
 
@@ -309,21 +330,28 @@ main() {
 	fi
 	echo
 
-	local -A speeds=([a]="" [b]="")
-	local repeat slot speed
+	# Two plain variables rather than an associative array: macOS ships bash
+	# 3.2, where `local -A` and ${slot^^} do not exist.
+	local speeds_a="" speeds_b=""
+	local repeat slot slot_name speed
 
 	for repeat in $(seq "$REPEATS"); do
 		for slot in a b; do
-			log "run $repeat/$REPEATS, revision ${slot^^} ($(label "$slot"))"
+			slot_name="$(printf '%s' "$slot" | tr 'a-z' 'A-Z')"
+			log "run $repeat/$REPEATS, revision $slot_name ($(label "$slot"))"
 			if ! speed="$(run_once "$slot")"; then
-				die "revision ${slot^^} failed to produce a measurement"
+				die "revision $slot_name failed to produce a measurement"
 			fi
-			log "run $repeat/$REPEATS, revision ${slot^^}: $(format_speed "$speed")"
-			speeds[$slot]="${speeds[$slot]} $speed"
+			log "run $repeat/$REPEATS, revision $slot_name: $(format_speed "$speed")"
+			if [ "$slot" = a ]; then
+				speeds_a="$speeds_a $speed"
+			else
+				speeds_b="$speeds_b $speed"
+			fi
 		done
 	done
 
-	report "${speeds[a]}" "${speeds[b]}"
+	report "$speeds_a" "$speeds_b"
 }
 
 spread_pct() {

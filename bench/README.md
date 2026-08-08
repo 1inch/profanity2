@@ -2,6 +2,8 @@
 
 This directory builds a **separate image** from the one in the repository root. The image in the root ships profanity2; this one measures it. It contains two revisions of profanity2 side by side and runs them alternately on the same GPU, so a change can be judged without trusting that two rented machines are equally fast.
 
+There are two ways to put the two revisions side by side. [bench/build.sh](build.sh) bakes them into an image for a rented NVIDIA GPU, which is the rest of this document; [bench/prepare-native.sh](prepare-native.sh) builds them on the machine you are sitting at, which is the only way to measure an Apple GPU - see [Running natively](#running-natively-no-docker). Both then hand over to the same [run-benchmark.sh](run-benchmark.sh).
+
 The result of a run looks like this:
 
 ```
@@ -83,6 +85,8 @@ Both revisions are compiled inside the image from a fresh clone, so your working
 bench/build.sh master pr/57 --repo https://github.com/YOUR_USER/profanity2
 ```
 
+A native build resolves the same set of revisions, but reads the local repository rather than a clone, so a local branch works as a revision too and `--repo` is only needed for a fork or for pull request refs you never fetched.
+
 ## Running it
 
 ```bash
@@ -98,6 +102,39 @@ docker run --rm --gpus all profanity2-bench:master__pr-57
 
 The image is built for `linux/amd64` by default because the Linux branch of the Makefile passes `-mmmx` and `-mcmodel=large`, which do not exist on arm64, and because GPU rental platforms are x86_64 anyway. On Apple Silicon the build therefore runs under emulation and takes a few minutes.
 
+## Running natively (no Docker)
+
+On macOS a container is a Linux virtual machine, and the Apple GPU is not passed into it: there is no counterpart to the NVIDIA Container Toolkit, the Ubuntu base image cannot reach `OpenCL.framework` on the host, and this directory's Dockerfile registers the NVIDIA ICD in any case. Rebuilding the image for `linux/arm64` changes the CPU architecture and nothing else, so a container on a Mac measures at best a CPU OpenCL runtime. To compare two revisions on an Apple GPU, build them on the host:
+
+```bash
+WORK=$(bench/prepare-native.sh 9011bcd pr57-head)
+BENCH_ROOT=$WORK bench/run-benchmark.sh --mode leading --repeats 3
+```
+
+[prepare-native.sh](prepare-native.sh) does on the host what the `src` and `build` stages of the Dockerfile do inside the image: it resolves both revisions, exports each one with `git archive`, runs `make` in it, and leaves the layout the runner expects.
+
+```
+<workdir>/a/{profanity2.x64,keccak.cl,profanity.cl}
+<workdir>/b/{profanity2.x64,keccak.cl,profanity.cl}
+<workdir>/{a,b}.ref, <workdir>/{a,b}.sha, <workdir>/timer.state
+```
+
+By default the revisions come from **the local repository, used as is** - a commit you already have needs no network, and an export rather than a checkout keeps your working tree and its stale object files out of the build. `--repo <url>` clones instead, which is what a `pr/<number>` revision needs when its refs were never fetched. The workdir sits under `TMPDIR` and is named after the two commits, so rerunning the same pair skips the compilation; `--force` rebuilds anyway.
+
+The runner is the same script the image runs, so everything under [Options](#options) and [Getting a number that means something](#getting-a-number-that-means-something) applies unchanged. It only needs `BENCH_ROOT`, which is the one thing `prepare-native.sh` prints on stdout.
+
+Nothing here is macOS-only: on a Linux box with a working OpenCL runtime the same two commands compare two revisions without building an image.
+
+### What to watch for on a Mac
+
+**`clinfo` is usually not installed**, and macOS has no ICD loader to interrogate. The runner treats a Darwin host without `clinfo` as having one platform and lets profanity2's own device enumeration be the real check - a machine with no usable device fails at the first run with its output printed. Install `clinfo` from Homebrew if you want the check back.
+
+**Thermal throttling is the thing most likely to ruin the result.** A laptop that heats up during the second half of a comparison hands the penalty to whichever revision ran last, which is exactly what the alternating A B A B order and the reported `spread` exist to expose. Keep the machine plugged in, and if the spread comes out anywhere near the difference between the revisions, the runner says so and the answer is more `--repeats` or a longer `--seconds`.
+
+**Check the work size once.** The default `-w 64` is accepted by an M4 Max, but on a GPU that rejects it profanity2 prints `warning: local work size abandoned on GPU0` and lets the driver choose. That is not fatal, but it has to happen for both revisions or the comparison is between two different work sizes - the warning goes to stdout, so a short run with `--seconds 20 --warmup 10 --repeats 1` is the cheapest way to see it before committing to the full run.
+
+**The MH/s figure is not comparable to the NVIDIA table** in the root [README](../README.md#benchmarks---current-version). What a native run gives you is A against B on one machine.
+
 ## Options
 
 Everything has a flag and an environment variable; flags are easier on platforms that pass arguments to the entrypoint, variables are the only option on platforms that replace it.
@@ -112,6 +149,7 @@ Everything has a flag and an environment variable; flags are easier on platforms
 | `--mask` | `BENCH_EXACT_MASK` | `deadbee` | mask for `--mode exact`, 4 to 10 fixed hex characters |
 | `--public-key` | `BENCH_PUBLIC_KEY` | secp256k1 generator | seed public key |
 | | `BENCH_SKIP_GPU_CHECK` | unset | start even when no OpenCL platform is detected |
+| | `BENCH_ROOT` | `/opt/bench` | directory holding the two revisions, for a native run |
 
 A plain `PUBLIC_KEY` is honoured as well, but only when it holds 128 hexadecimal characters. Rental platforms hand out that generic name for their own SSH key, and it may already sit in your account-wide environment variables, so a value that is not a seed public key is ignored and the run falls back to the default. The header of every run says which key it used:
 
