@@ -12,6 +12,8 @@ This project "profanity2" was forked from the original project and modified to g
 
 Project "profanity2" is not generating key anymore, instead it adjusts user-provided public key until desired vanity address will be discovered. Users provide seed public key in form of 128-symbol hex string with `-z` parameter flag. Resulting private key should be used to be added to seed private key to achieve final private key of the desired vanity address (private keys are just 256-bit numbers). Running "profanity2" can even be outsourced to someone completely unreliable - it is still safe by design.
 
+Note: when upgrading to a new version of profanity2, delete the `cache-opencl.*` files (or pass `--no-cache`) once so the OpenCL program is rebuilt with the new kernel.
+
 ## Getting public key for mandatory `-z` parameter
 
 Generate private key and public key via openssl in terminal (remove prefix "04" from public key):
@@ -262,9 +264,6 @@ reported), and a very short mask can produce more matches per GPU round than the
 buffer holds — the program prints a warning with the number of dropped matches if that
 happens.
 
-Note: if you have run an older version of profanity2 before, delete the `cache-opencl.*`
-files (or pass `--no-cache`) once so the OpenCL program is rebuilt with the new kernel.
-
 ### Character classes anywhere (`--zeros`, `--letters`, `--numbers`)
 
 Score on the total amount of matching characters anywhere in the address:
@@ -334,16 +333,17 @@ zeroth transaction** of the found account instead of the account address itself:
 ```
 
 ### Benchmarks - Current version
-|Model|Clock Speed|Memory Speed|Modified straps|Speed|Time to match eight characters
-|:-:|:-:|:-:|:-:|:-:|:-:|
-|GTX 1070 OC|1950|4450|NO|179.0 MH/s| ~24s
-|GTX 1070|1750|4000|NO|163.0 MH/s| ~26s
-|RX 480|1328|2000|YES|120.0 MH/s| ~36s
-|RTX 4090|-|-|-|1096 MH/s| ~3s
-|Apple Silicon M1<br/>(8-core GPU)|-|-|-|45.0 MH/s| ~97s
-|Apple Silicon M1 Max<br/>(32-core GPU)|-|-|-|172.0 MH/s| ~25s
-|Apple Silicon M3 Pro<br/>(18-core GPU)|-|-|-|97 MH/s| ~45s
-|Apple Silicon M4 Max<br/>(40-core GPU)|-|-|-|350 MH/s| ~12s
+|Model|Clock Speed|Memory Speed|Speed|Time to match eight characters
+|:-:|:-:|:-:|:-:|:-:|
+|GTX 1070|1750|4000|225 MH/s| ~19s
+|RTX 4090|2550|10500|1361 MH/s| ~3s
+|RX 480|1328|4000|120 MH/s| ~36s
+|RX 7900 XTX|2500|10000|592 MH/s| ~7s
+|Apple Silicon M1<br/>(8-core GPU)|1278|4266|60 MH/s| ~72s
+|Apple Silicon M1 Max<br/>(32-core GPU)|1296|6400|229 MH/s| ~19s
+|Apple Silicon M2<br/>(10-core GPU)|1398|6400|75 MH/s| ~57s
+|Apple Silicon M3 Pro<br/>(18-core GPU)|1398|6400|129 MH/s| ~33s
+|Apple Silicon M4 Max<br/>(40-core GPU)|1800|8533|467 MH/s| ~9s
 
 # License
 

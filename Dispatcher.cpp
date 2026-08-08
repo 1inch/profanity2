@@ -188,9 +188,7 @@ Dispatcher::Device::Device(Dispatcher & parent, cl_context & clContext, cl_progr
 	m_clQueue(createQueue(clContext, clDeviceId) ),
 	m_kernelInit( createKernel(clProgram, "profanity_init") ),
 	m_kernelInverse(createKernel(clProgram, "profanity_inverse")),
-	m_kernelIterate(createKernel(clProgram, "profanity_iterate")),
-	m_kernelTransform( mode.transformKernel() == "" ? NULL : createKernel(clProgram, mode.transformKernel())),
-	m_kernelScore(createKernel(clProgram, mode.kernel)),
+	m_kernelIterate(createKernel(clProgram, mode.kernel)),
 	m_memPrecomp(clContext, m_clQueue, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, sizeof(g_precomp), g_precomp),
 	m_memPointsDeltaX(clContext, m_clQueue, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size, true),
 	m_memInversedNegativeDoubleGy(clContext, m_clQueue, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size, true),
@@ -325,23 +323,16 @@ void Dispatcher::initBegin(Device & d) {
 	d.m_memPointsDeltaX.setKernelArg(d.m_kernelInverse, 0);
 	d.m_memInversedNegativeDoubleGy.setKernelArg(d.m_kernelInverse, 1);
 
-	// Kernel arguments - profanity_iterate
+	// Kernel arguments - profanity_iterate_score_*
 	d.m_memPointsDeltaX.setKernelArg(d.m_kernelIterate, 0);
 	d.m_memInversedNegativeDoubleGy.setKernelArg(d.m_kernelIterate, 1);
 	d.m_memPrevLambda.setKernelArg(d.m_kernelIterate, 2);
+	d.m_memResult.setKernelArg(d.m_kernelIterate, 3);
+	d.m_memData1.setKernelArg(d.m_kernelIterate, 4);
+	d.m_memData2.setKernelArg(d.m_kernelIterate, 5);
 
-	// Kernel arguments - profanity_transform_*
-	if(d.m_kernelTransform) {
-		d.m_memInversedNegativeDoubleGy.setKernelArg(d.m_kernelTransform, 0);
-	}
-
-	// Kernel arguments - profanity_score_*
-	d.m_memInversedNegativeDoubleGy.setKernelArg(d.m_kernelScore, 0);
-	d.m_memResult.setKernelArg(d.m_kernelScore, 1);
-	d.m_memData1.setKernelArg(d.m_kernelScore, 2);
-	d.m_memData2.setKernelArg(d.m_kernelScore, 3);
-
-	CLMemory<cl_uchar>::setKernelArg(d.m_kernelScore, 4, d.m_clScoreMax); // Updated in handleResult()
+	CLMemory<cl_uchar>::setKernelArg(d.m_kernelIterate, 6, d.m_clScoreMax); // Updated in handleResult()
+	CLMemory<cl_uchar>::setKernelArg(d.m_kernelIterate, 7, (cl_uchar) (m_mode.target == CONTRACT ? 1 : 0));
 
 	// Seed device
 	initContinue(d);
@@ -436,11 +427,6 @@ void Dispatcher::dispatch(Device & d) {
 	enqueueKernelDevice(d, d.m_kernelIterate, m_size);
 #endif
 
-	if (d.m_kernelTransform) {
-		enqueueKernelDevice(d, d.m_kernelTransform, m_size);
-	}
-
-	enqueueKernelDevice(d, d.m_kernelScore, m_size);
 	clFlush(d.m_clQueue);
 
 #ifdef PROFANITY_DEBUG
@@ -490,7 +476,7 @@ void Dispatcher::handleResult(Device & d) {
 
 		if (r.found > 0 && i >= d.m_clScoreMax) {
 			d.m_clScoreMax = i;
-			CLMemory<cl_uchar>::setKernelArg(d.m_kernelScore, 4, d.m_clScoreMax);
+			CLMemory<cl_uchar>::setKernelArg(d.m_kernelIterate, 6, d.m_clScoreMax);
 
 			std::lock_guard<std::mutex> lock(m_mutex);
 			if (i >= m_clScoreMax) {

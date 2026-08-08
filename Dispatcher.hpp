@@ -51,8 +51,6 @@ class Dispatcher {
 			cl_kernel m_kernelInit;
 			cl_kernel m_kernelInverse;
 			cl_kernel m_kernelIterate;
-			cl_kernel m_kernelTransform;
-			cl_kernel m_kernelScore;
 
 			CLMemory<point> m_memPrecomp;
 			CLMemory<mp_number> m_memPointsDeltaX;

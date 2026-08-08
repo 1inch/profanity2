@@ -27,8 +27,8 @@ double SpeedSample::getSpeed() const {
 
 void SpeedSample::sample(const double V) {
 	const timepoint newTime = now();
-	auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(newTime - m_lastTime).count();
-	m_lSpeeds.push_back((1000 * V) / delta);
+	auto delta = std::chrono::duration_cast<std::chrono::microseconds>(newTime - m_lastTime).count();
+	m_lSpeeds.push_back((1000000.0 * V) / delta);
 	m_lastTime = newTime;
 	if (m_lSpeeds.size() > m_length) {
 		m_lSpeeds.pop_front();
