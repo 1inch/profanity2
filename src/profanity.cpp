@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cstdint>
 #include <cstdlib>
 #include <cstdio>
 #include <vector>
@@ -17,6 +18,17 @@
 #include <CL/cl_ext.h> // Included to get topology to get an actual unique identifier per device
 #endif
 
+// Asking the OS where the running executable is, see getExecutablePath below.
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#elif defined(__APPLE__) || defined(__MACOSX)
+#include <mach-o/dyld.h>
+#else
+#include <unistd.h>
+#endif
+
 #define CL_DEVICE_PCI_BUS_ID_NV  0x4008
 #define CL_DEVICE_PCI_SLOT_ID_NV 0x4009
 
@@ -25,12 +37,69 @@
 #include "Mode.hpp"
 #include "help.hpp"
 
-std::string readFile(const char * const szFilename)
-{
-	std::ifstream in(szFilename, std::ios::in | std::ios::binary);
-	std::ostringstream contents;
-	contents << in.rdbuf();
-	return contents.str();
+// Directory the running executable lives in, with a trailing separator, or
+// empty when it could not be determined. Set once at the start of main.
+std::string g_strExecutableDir;
+
+std::string directoryOf(const std::string & strPath) {
+	const std::string::size_type pos = strPath.find_last_of("/\\");
+	return pos == std::string::npos ? std::string() : strPath.substr(0, pos + 1);
+}
+
+std::string getExecutablePath() {
+#if defined(_WIN32)
+	char szPath[MAX_PATH];
+	const DWORD length = GetModuleFileNameA(NULL, szPath, MAX_PATH);
+	if (length > 0 && length < MAX_PATH) {
+		return std::string(szPath, length);
+	}
+#elif defined(__APPLE__) || defined(__MACOSX)
+	uint32_t length = 0;
+	_NSGetExecutablePath(NULL, &length); // Fails on purpose, only to report the size
+	if (length > 0) {
+		std::vector<char> vPath(length, '\0');
+		if (_NSGetExecutablePath(vPath.data(), &length) == 0) {
+			return std::string(vPath.data());
+		}
+	}
+#else
+	std::vector<char> vPath(4096, '\0');
+	const ssize_t length = readlink("/proc/self/exe", vPath.data(), vPath.size() - 1);
+	if (length > 0) {
+		return std::string(vPath.data(), length);
+	}
+#endif
+	return std::string();
+}
+
+// Kernel sources sit next to the executable in the container image and in the
+// directories the benchmark harness builds, and in kernels/ in a source tree.
+// The working directory is tried last: that is where every release before the
+// source tree was split into src/ and kernels/ kept them.
+std::string readKernel(const std::string & strName) {
+	std::vector<std::string> vCandidates;
+	if (!g_strExecutableDir.empty()) {
+		vCandidates.push_back(g_strExecutableDir + strName);
+		vCandidates.push_back(g_strExecutableDir + "../kernels/" + strName);
+	}
+	vCandidates.push_back(strName);
+	vCandidates.push_back("kernels/" + strName);
+
+	for (const auto & strCandidate : vCandidates) {
+		std::ifstream in(strCandidate.c_str(), std::ios::in | std::ios::binary);
+		if (in) {
+			std::ostringstream contents;
+			contents << in.rdbuf();
+			return contents.str();
+		}
+	}
+
+	std::string strTried;
+	for (const auto & strCandidate : vCandidates) {
+		strTried += "\n  " + strCandidate;
+	}
+
+	throw std::runtime_error("could not open " + strName + ", looked in:" + strTried);
 }
 
 std::vector<cl_device_id> getAllDevices(cl_device_type deviceType = CL_DEVICE_TYPE_GPU) {
@@ -162,7 +231,7 @@ bool printResult(const cl_int err) {
 
 std::string getDeviceCacheFilename(cl_device_id & d, const size_t & inverseSize) {
 	const auto uniqueId = getUniqueDeviceIdentifier(d);
-	return "cache-opencl." + toString(inverseSize) + "." + toString(uniqueId);
+	return g_strExecutableDir + "cache-opencl." + toString(inverseSize) + "." + toString(uniqueId);
 }
 
 int main(int argc, char * * argv) {
@@ -172,6 +241,11 @@ int main(int argc, char * * argv) {
 	// now it only advances provided public key to a random offset to find vanity address
 
 	try {
+		g_strExecutableDir = directoryOf(getExecutablePath());
+		if (g_strExecutableDir.empty() && argc > 0) {
+			g_strExecutableDir = directoryOf(argv[0]);
+		}
+
 		ArgParser argp(argc, argv);
 		bool bHelp = false;
 		bool bModeBenchmark = false;
@@ -350,8 +424,8 @@ int main(int argc, char * * argv) {
 		} else {
 			// Create a program from the kernel source
 			std::cout << "  Compiling kernel..." << std::flush;
-			const std::string strKeccak = readFile("keccak.cl");
-			const std::string strVanity = readFile("profanity.cl");
+			const std::string strKeccak = readKernel("keccak.cl");
+			const std::string strVanity = readKernel("profanity.cl");
 			const char * szKernels[] = { strKeccak.c_str(), strVanity.c_str() };
 
 			clProgram = clCreateProgramWithSource(clContext, sizeof(szKernels) / sizeof(char *), szKernels, NULL, &errorCode);

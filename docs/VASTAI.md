@@ -1,6 +1,6 @@
 # Running profanity2 on a rented GPU (vast.ai)
 
-The [Dockerfile](../Dockerfile) in the repository root builds an image that contains the compiled binary, the OpenCL kernels and the OpenCL runtime glue needed inside a container. Nothing has to be installed on the rented machine: you pick the image, type the profanity2 options into the template and start the instance.
+The [Dockerfile](../docker/Dockerfile) builds an image that contains the compiled binary, the OpenCL kernels and the OpenCL runtime glue needed inside a container. Nothing has to be installed on the rented machine: you pick the image, type the profanity2 options into the template and start the instance.
 
 The image is published as `ghcr.io/1inch/profanity2` (see [Building your own image](#building-your-own-image) if you prefer your own registry). It works on any Docker host with an NVIDIA GPU, vast.ai is just the cheapest way to rent one.
 
@@ -136,7 +136,7 @@ Build your own if you have local changes, if you want a revision that is not pub
 ```bash
 git clone https://github.com/1inch/profanity2
 cd profanity2
-docker build --platform linux/amd64 -t profanity2 .
+docker build --platform linux/amd64 -f docker/Dockerfile -t profanity2 .
 ```
 
 `--platform linux/amd64` is not optional. The Linux branch of the Makefile passes `-mmmx` and `-mcmodel=large`, which do not exist on arm64, so a native build on an Apple Silicon Mac fails with `unrecognized command-line option '-mmmx'`. Rented GPU machines are x86_64 anyway. Under emulation the build takes a few minutes rather than the half minute it needs on an x86 host.
@@ -172,7 +172,7 @@ In the GUI the same credentials go into the *Docker login* field of the template
 
 ```bash
 IMAGE=ttl.sh/profanity2-$(uuidgen | tr '[:upper:]' '[:lower:]'):24h
-docker build --platform linux/amd64 -t "$IMAGE" .
+docker build --platform linux/amd64 -f docker/Dockerfile -t "$IMAGE" .
 docker push "$IMAGE"
 echo "$IMAGE"
 ```

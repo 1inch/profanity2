@@ -2,7 +2,7 @@
 
 Profanity is a high performance (probably the fastest!) vanity address generator for Ethereum. Create cool customized addresses that you never realized you needed! Recieve Ether in style! Wow!
 
-![Screenshot](/img/screenshot.png?raw=true "Wow! That's a lot of zeros!")
+![Screenshot](/docs/img/screenshot.png?raw=true "Wow! That's a lot of zeros!")
 
 # Important to know
 
@@ -65,7 +65,8 @@ xcode-select --install   # skip if already installed
 make
 ```
 
-This produces `profanity2.x64` in the repository root. Works on both Intel and
+This produces `bin/profanity2.x64`, with the two OpenCL kernels copied next to
+it so the directory can be moved elsewhere as is. Works on both Intel and
 Apple Silicon (M1/M2/M3/M4) Macs.
 
 ### Ubuntu / Linux
@@ -96,6 +97,23 @@ docker run --rm --gpus all ghcr.io/1inch/profanity2:latest --matching dead -z $P
 ```
 
 Since the tool only needs your public key, that machine does not have to be yours. See [docs/VASTAI.md](docs/VASTAI.md) for renting a GPU on vast.ai and running the image there with your own parameters.
+
+### Repository layout
+
+```
+src/       C++ sources of the host program
+kernels/   the OpenCL kernels, keccak.cl and profanity.cl
+bin/       what make produces: the binary and a copy of the kernels
+build/     object files
+docker/    the shipping image and its entrypoint
+bench/     tooling that compares the speed of two revisions on one GPU
+tests/     correctness tests and a microbenchmark for the mp-math kernels
+docs/      build guides for Ubuntu and Windows, and the vast.ai guide
+```
+
+`make` copies the kernels into `bin/` because that is the first place the binary
+looks for them, so it can be started from any directory. It still falls back to
+the working directory, which is where releases before this layout kept them.
 
 # Usage
 ```
@@ -196,10 +214,10 @@ and better results:
 
 ```bash
 # 0x00000... (as many leading zeros as possible)
-./profanity2.x64 --leading 0 -z $PUBLIC_KEY
+./bin/profanity2.x64 --leading 0 -z $PUBLIC_KEY
 
 # 0xaaaaa... (as many leading "a"s as possible)
-./profanity2.x64 --leading a -z $PUBLIC_KEY
+./bin/profanity2.x64 --leading a -z $PUBLIC_KEY
 ```
 
 ### Exact pattern (`--matching`)
@@ -212,31 +230,31 @@ matches anything. The score is the number of matched fixed positions.
 
 ```bash
 # 0xdead...
-./profanity2.x64 --matching dead -z $PUBLIC_KEY
+./bin/profanity2.x64 --matching dead -z $PUBLIC_KEY
 ```
 
 **Suffix** — pad the beginning of a full 40-character pattern with `X` wildcards:
 
 ```bash
 # 0x...999999
-./profanity2.x64 --matching XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX999999 -z $PUBLIC_KEY
+./bin/profanity2.x64 --matching XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX999999 -z $PUBLIC_KEY
 ```
 
 **Prefix and suffix at the same time** — fix both ends, wildcard the middle:
 
 ```bash
 # 0x1111...2222
-./profanity2.x64 --matching 1111XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX2222 -z $PUBLIC_KEY
+./bin/profanity2.x64 --matching 1111XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX2222 -z $PUBLIC_KEY
 
 # 0xbad...bad
-./profanity2.x64 --matching badXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXbad -z $PUBLIC_KEY
+./bin/profanity2.x64 --matching badXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXbad -z $PUBLIC_KEY
 ```
 
 **Arbitrary positions** — any mix of fixed characters and wildcards works:
 
 ```bash
 # 0xXXXXcafeXXXX...XXXX (characters 5-8 are "cafe")
-./profanity2.x64 --matching XXXXcafeXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX -z $PUBLIC_KEY
+./bin/profanity2.x64 --matching XXXXcafeXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX -z $PUBLIC_KEY
 ```
 
 Note: only results improving the best score so far are printed, so after a result matching
@@ -253,10 +271,10 @@ each one:
 
 ```bash
 # Every address 0x1337...c0de found, not just the first one
-./profanity2.x64 --exact 1337XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXc0de -z $PUBLIC_KEY
+./bin/profanity2.x64 --exact 1337XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXc0de -z $PUBLIC_KEY
 
 # Every address with at least five leading zeros
-./profanity2.x64 --exact 00000XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX -z $PUBLIC_KEY
+./bin/profanity2.x64 --exact 00000XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX -z $PUBLIC_KEY
 ```
 
 The first matches take longer to appear than with `--matching` (partial matches are not
@@ -270,13 +288,13 @@ Score on the total amount of matching characters anywhere in the address:
 
 ```bash
 # As many "0" characters as possible, e.g. 0x00aa0e050bb03c0b066e00c0f70a03d0d000b0d7
-./profanity2.x64 --zeros -z $PUBLIC_KEY
+./bin/profanity2.x64 --zeros -z $PUBLIC_KEY
 
 # Only letters (a-f), e.g. 0xffcadbfaecfcdeaddeedabadfeedfacebeefcafe
-./profanity2.x64 --letters -z $PUBLIC_KEY
+./bin/profanity2.x64 --letters -z $PUBLIC_KEY
 
 # Only numbers (0-9), e.g. 0x8896339129744478701529940603494328137361
-./profanity2.x64 --numbers -z $PUBLIC_KEY
+./bin/profanity2.x64 --numbers -z $PUBLIC_KEY
 ```
 
 ### Ranges (`--leading-range`, `--range`)
@@ -286,27 +304,27 @@ Score on characters within a given hex range, set with `-m/--min` and `-M/--max`
 
 ```bash
 # Leading characters in range 0-1, e.g. 0x0110100...
-./profanity2.x64 --leading-range -m 0 -M 1 -z $PUBLIC_KEY
+./bin/profanity2.x64 --leading-range -m 0 -M 1 -z $PUBLIC_KEY
 
 # Leading characters in range a-c, e.g. 0xcbabacc...
-./profanity2.x64 --leading-range -m 10 -M 12 -z $PUBLIC_KEY
+./bin/profanity2.x64 --leading-range -m 10 -M 12 -z $PUBLIC_KEY
 
 # Characters in range 0-1 anywhere in the address
-./profanity2.x64 --range -m 0 -M 1 -z $PUBLIC_KEY
+./bin/profanity2.x64 --range -m 0 -M 1 -z $PUBLIC_KEY
 ```
 
 ### Other scoring modes (`--mirror`, `--leading-doubles`, `--zero-bytes`)
 
 ```bash
 # Address mirrored around its center, e.g. 0x...abccba...
-./profanity2.x64 --mirror -z $PUBLIC_KEY
+./bin/profanity2.x64 --mirror -z $PUBLIC_KEY
 
 # Leading pairs of identical characters, e.g. 0x00fFcc55...
-./profanity2.x64 --leading-doubles -z $PUBLIC_KEY
+./bin/profanity2.x64 --leading-doubles -z $PUBLIC_KEY
 
 # As many zero BYTES (pairs "00" at even positions) as possible; such addresses
 # save gas when used in calldata, e.g. 0x00815e00c0fd4a2d00ae00fa00e300ee00fc0034
-./profanity2.x64 --zero-bytes -z $PUBLIC_KEY
+./bin/profanity2.x64 --zero-bytes -z $PUBLIC_KEY
 ```
 
 ### Vanity contract address (`--contract`)
@@ -316,20 +334,20 @@ zeroth transaction** of the found account instead of the account address itself:
 
 ```bash
 # Account whose first deployed contract gets a 0x00000... address
-./profanity2.x64 --contract --leading 0 -z $PUBLIC_KEY
+./bin/profanity2.x64 --contract --leading 0 -z $PUBLIC_KEY
 
 # Account whose first deployed contract address has the most zero bytes
-./profanity2.x64 --contract --zero-bytes -z $PUBLIC_KEY
+./bin/profanity2.x64 --contract --zero-bytes -z $PUBLIC_KEY
 ```
 
 ### Benchmark and device control
 
 ```bash
 # Measure hashrate without any scoring
-./profanity2.x64 --benchmark -z $PUBLIC_KEY
+./bin/profanity2.x64 --benchmark -z $PUBLIC_KEY
 
 # Multiple GPUs are used automatically; skip a device (e.g. an integrated GPU) by index
-./profanity2.x64 --leading 0 -s 1 -z $PUBLIC_KEY
+./bin/profanity2.x64 --leading 0 -s 1 -z $PUBLIC_KEY
 ```
 
 ### Benchmarks - Current version

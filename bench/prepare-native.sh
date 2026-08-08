@@ -192,7 +192,14 @@ build_slot() {
 		make -C "$src" -j"$jobs_count" >&2 || die "$slot: build of $short failed"
 
 		mkdir -p "$dst"
-		cp "$src/profanity2.x64" "$src/keccak.cl" "$src/profanity.cl" "$dst/"
+		# A revision from before the source tree was reorganized leaves the
+		# binary and the kernels in the root of its tree, a newer one leaves
+		# them in bin/.
+		if [ -d "$src/bin" ]; then
+			cp "$src/bin/profanity2.x64" "$src/bin/keccak.cl" "$src/bin/profanity.cl" "$dst/"
+		else
+			cp "$src/profanity2.x64" "$src/keccak.cl" "$src/profanity.cl" "$dst/"
+		fi
 	fi
 
 	printf '%s' "$ref" > "$WORKDIR/$slot.ref"
@@ -206,7 +213,9 @@ build_slot b "$REF_B" "$SHA_B" "$SHORT_B"
 
 # Whether the two revisions time a round the same way. If they do not, the
 # speeds they print come from different clocks and the runner warns about it.
-if git -C "$SRC_REPO" diff --quiet "$SHA_A" "$SHA_B" -- SpeedSample.cpp; then
+# Both paths are given because revisions from before the source tree was split
+# into src/ and kernels/ keep SpeedSample.cpp in the root of the tree.
+if git -C "$SRC_REPO" diff --quiet "$SHA_A" "$SHA_B" -- SpeedSample.cpp src/SpeedSample.cpp; then
 	printf 'same\n' > "$WORKDIR/timer.state"
 else
 	printf 'differs\n' > "$WORKDIR/timer.state"

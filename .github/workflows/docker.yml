@@ -27,6 +27,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: docker/Dockerfile
           load: true
           tags: profanity2:ci
           cache-from: type=gha
@@ -65,6 +66,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: docker/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -36,7 +36,8 @@ make
 ```
 
 The `Makefile` detects Windows automatically (via the `OS=Windows_NT` environment
-variable) and produces `profanity2.exe`. The MinGW runtimes (`libstdc++`, `libgcc`,
+variable) and produces `bin\profanity2.exe`, with the two OpenCL kernels copied
+next to it. The MinGW runtimes (`libstdc++`, `libgcc`,
 `winpthread`) are linked statically, so the resulting exe is self-contained and
 runs outside the MSYS2 shell — only `OpenCL.dll` is loaded dynamically, and that
 one ships with your GPU driver.
@@ -44,8 +45,10 @@ one ships with your GPU driver.
 If you prefer to build without `make`, the equivalent direct command is:
 
 ```bash
-g++ -std=c++11 -Wall -O2 Dispatcher.cpp Mode.cpp precomp.cpp profanity.cpp SpeedSample.cpp \
-    -static -l:libOpenCL.dll.a -lws2_32 -o profanity2.exe
+mkdir -p bin
+g++ -std=c++11 -Wall -O2 src/Dispatcher.cpp src/Mode.cpp src/precomp.cpp src/profanity.cpp src/SpeedSample.cpp \
+    -static -l:libOpenCL.dll.a -lws2_32 -o bin/profanity2.exe
+cp kernels/keccak.cl kernels/profanity.cl bin/
 ```
 
 (`-l:libOpenCL.dll.a` names the OpenCL import library explicitly because with
@@ -57,7 +60,7 @@ Your GPU driver must be installed (NVIDIA and AMD drivers include the OpenCL
 runtime on Windows). Then:
 
 ```bash
-./profanity2.exe --leading 0 -z HEX_PUBLIC_KEY_128_CHARS_LONG
+./bin/profanity2.exe --leading 0 -z HEX_PUBLIC_KEY_128_CHARS_LONG
 ```
 
 The executable is statically linked against the MinGW runtimes, so it can be
@@ -96,8 +99,8 @@ works, e.g. the [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads)
 g++ -std=c++11 -Wall -O2 \
     -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/include" \
     -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/lib/x64" \
-    Dispatcher.cpp Mode.cpp precomp.cpp profanity.cpp SpeedSample.cpp \
-    -lOpenCL -lws2_32 -o profanity2.exe
+    src/Dispatcher.cpp src/Mode.cpp src/precomp.cpp src/profanity.cpp src/SpeedSample.cpp \
+    -lOpenCL -lws2_32 -o bin/profanity2.exe
 ```
 
 The same works through `make`:

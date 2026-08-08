@@ -1,8 +1,10 @@
 # Makefile artifacts
+build/
+bin/
 *.o
 *.so
 *.x64
+*.exe
 cache-opencl.*
-bin
 __pycache__/
 .venv

@@ -13,7 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /src
 COPY Makefile ./
-COPY *.cpp *.hpp *.cl ./
+COPY src ./src
+COPY kernels ./kernels
 RUN make -j"$(nproc)"
 
 # ---------------------------------------------------------------------------
@@ -44,10 +45,11 @@ RUN mkdir -p /etc/OpenCL/vendors \
 ENV NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
-# profanity2 loads keccak.cl/profanity.cl and stores its compiled kernel cache
-# relative to the working directory, so the binary has to run from here.
+# The build leaves the binary and the two kernels together in bin/, which is
+# the layout profanity2 looks for first, so it finds them wherever it is
+# started from. Its compiled kernel cache is written here as well.
 WORKDIR /opt/profanity2
-COPY --from=build /src/profanity2.x64 /src/keccak.cl /src/profanity.cl ./
+COPY --from=build /src/bin/ ./
 COPY LICENSE ./
 COPY docker/entrypoint.sh /usr/local/bin/profanity2-entrypoint
 RUN chmod +x /usr/local/bin/profanity2-entrypoint && mkdir -p /workspace

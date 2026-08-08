@@ -1,6 +1,6 @@
 # Comparing the speed of two profanity2 revisions
 
-This directory builds a **separate image** from the one in the repository root. The image in the root ships profanity2; this one measures it. It contains two revisions of profanity2 side by side and runs them alternately on the same GPU, so a change can be judged without trusting that two rented machines are equally fast.
+This directory builds a **separate image** from the one in [docker/](../docker/Dockerfile). That one ships profanity2; this one measures it. It contains two revisions of profanity2 side by side and runs them alternately on the same GPU, so a change can be judged without trusting that two rented machines are equally fast.
 
 There are two ways to put the two revisions side by side. [bench/build.sh](build.sh) bakes them into an image for a rented NVIDIA GPU, which is the rest of this document; [bench/prepare-native.sh](prepare-native.sh) builds them on the machine you are sitting at, which is the only way to measure an Apple GPU - see [Running natively](#running-natively-no-docker). Both then hand over to the same [run-benchmark.sh](run-benchmark.sh).
 
@@ -199,3 +199,7 @@ docker run --rm --gpus all IMAGE --mode exact
 ```
 
 `--mode exact` uses `--exact <mask>`, which prints every address matching the mask, and derives the throughput from how many appear per second: `rate = matches / seconds * 16^fixed`. Nothing in that number comes from the program's own timer. It is a counting measurement, so its precision is `1/sqrt(matches)`: the default 7-character mask on a 1 GH/s card yields about four matches per second, so a 120 second window gives roughly 450 matches and 5% precision. Widen `--seconds` to resolve smaller differences.
+
+## Recorded runs
+
+[logs/](logs) holds the output of comparisons that were actually run, one file per machine, named after the GPU and where it was rented. They are the raw output of the runner, so each one still carries the revisions it compared and the settings it used.

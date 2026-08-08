@@ -22,10 +22,10 @@ endif
 
 all: $(EXECUTABLES)
 
-test_correctness_pr49.x64: test_correctness_pr49.cpp testutil.hpp ../types.hpp
+test_correctness_pr49.x64: test_correctness_pr49.cpp testutil.hpp ../src/types.hpp
 	$(CC) $(CFLAGS) $(CDEFINES) test_correctness_pr49.cpp $(LDFLAGS) -o $@
 
-bench_mod_mul_pr49.x64: bench_mod_mul_pr49.cpp testutil.hpp ../types.hpp
+bench_mod_mul_pr49.x64: bench_mod_mul_pr49.cpp testutil.hpp ../src/types.hpp
 	$(CC) $(CFLAGS) $(CDEFINES) bench_mod_mul_pr49.cpp $(LDFLAGS) -o $@
 
 clean:

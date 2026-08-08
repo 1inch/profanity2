@@ -1,0 +1,8 @@
+# The benchmark image is built with this directory as its context, and the only
+# file it copies in is run-benchmark.sh. Everything else just invalidates the
+# layer cache when it changes.
+README.md
+logs
+build.sh
+publish.sh
+prepare-native.sh

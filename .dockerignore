@@ -2,16 +2,23 @@
 .github
 .gitignore
 .dockerignore
-Dockerfile
+README.md
+bench
 docs
-img
 tests
 
-# Makefile artifacts
+# The image is built from the repository root, so that the Makefile, src/ and
+# kernels/ are in the context. The Dockerfile itself is not needed inside it,
+# but docker/entrypoint.sh is, so the directory cannot be excluded wholesale.
+docker/Dockerfile
+
+# Makefile artifacts, the image runs its own build
+build
+bin
 *.o
 *.so
 *.x64
 *.exe
 cache-opencl.*
-bin
 __pycache__/
+.venv

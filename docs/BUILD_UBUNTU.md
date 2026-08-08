@@ -76,12 +76,13 @@ driver installation first.
 make
 ```
 
-This produces the `profanity2.x64` executable in the repository root.
+This produces `bin/profanity2.x64`, with the two OpenCL kernels copied next to
+it. Object files land in `build/`.
 
 ## 5. Run
 
 ```bash
-./profanity2.x64 --leading 0 -z HEX_PUBLIC_KEY_128_CHARS_LONG
+./bin/profanity2.x64 --leading 0 -z HEX_PUBLIC_KEY_128_CHARS_LONG
 ```
 
 See the [README](../README.md) for how to generate the public key for the `-z`

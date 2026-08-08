@@ -5,7 +5,8 @@
  * ============
  * Shared helpers for the mp-math correctness tests and benchmarks:
  *   - OpenCL boilerplate (context/device selection, program build from
- *     keccak.cl + profanity.cl + tests/harness.cl, mirroring profanity.cpp)
+ *     kernels/keccak.cl + kernels/profanity.cl + tests/harness.cl, mirroring
+ *     profanity.cpp)
  *   - Host-side 256/512-bit reference arithmetic used to verify the kernels
  *     against an independent implementation.
  */
@@ -26,7 +27,7 @@
 #include <string>
 #include <vector>
 
-#include "../types.hpp"
+#include "../src/types.hpp"
 
 /* ------------------------------------------------------------------------ */
 /* OpenCL helpers                                                            */
@@ -108,8 +109,8 @@ inline ClSetup clSetup() {
 	clCheck(errorCode, "clCreateCommandQueue");
 
 	// Same source assembly as profanity.cpp, plus the test harness
-	const std::string strKeccak = readFile("keccak.cl");
-	const std::string strVanity = readFile("profanity.cl");
+	const std::string strKeccak = readFile("kernels/keccak.cl");
+	const std::string strVanity = readFile("kernels/profanity.cl");
 	const std::string strHarness = readFile("tests/harness.cl");
 	const char * szKernels[] = { strKeccak.c_str(), strVanity.c_str(), strHarness.c_str() };
 
